@@ -52,6 +52,7 @@ typedef enum {
 typedef enum {
     float_type = 0,
     simple_fraction_type = 1,
+    mpq_type = 2,
 } LeafType;
 
 class SystemParser {

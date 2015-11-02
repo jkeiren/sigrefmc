@@ -28,6 +28,7 @@
 #include <parse_xml.hpp>
 #include <sigref.h>
 #include <sigref_util.h>
+#include <sylvan_gmp.h>
 
 /* Configuration */
 static char* model_filename = NULL;
@@ -157,6 +158,7 @@ VOID_TASK_1(main_lace, void*, arg)
     sylvan_init_package(1LL<<26, 1LL<<31, 1LL<<25, 1LL<<30);
     sylvan_init_bdd(3);
     sylvan_init_mtbdd();
+    gmp_init();
     sylvan_gc_add_mark(0, TASK(gc_start));
     sylvan_gc_add_mark(40, TASK(gc_end));
 
@@ -178,7 +180,10 @@ VOID_TASK_1(main_lace, void*, arg)
             sysType = sigref::lts_type;
             lts = *parser.getLTS();
         } else if ((strcmp(dot+1, "xlts") == 0) || (strcmp(dot+1, "xctmc") == 0) || (strcmp(dot+1, "ximc") == 0) || (strcmp(dot+1, "xml") == 0)) {
-            sigref::SystemParser reader(model_filename, 0, leaftype == 0 ? sigref::float_type : sigref::simple_fraction_type);
+            sigref::LeafType lt = sigref::float_type;
+            if (leaftype == 1) lt = sigref::simple_fraction_type;
+            if (leaftype == 2) lt = sigref::mpq_type;
+            sigref::SystemParser reader(model_filename, 0, lt);
             sysType = reader.getType();
             if (sysType == sigref::lts_type) {
                 lts = *reader.getLTS();

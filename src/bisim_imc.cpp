@@ -28,7 +28,7 @@
 #include <refine.h>
 #include <sigref.h>
 #include <sigref_util.h>
-
+#include <sylvan_gmp.h>
 
 /**
  * Compute equivalent of functions a and b
@@ -297,11 +297,20 @@ VOID_TASK_IMPL_1(min_imc_strong, sigref::IMC&, imc)
 
     if (leaftype == 0) markov_relation = mtbdd_max(markov_relation, mtbdd_double(0));
     else if (leaftype == 1) markov_relation = mtbdd_max(markov_relation, mtbdd_fraction(0, 1));
+    else if (leaftype == 2) {
+        mpq_t m_zero;
+        mpq_init(m_zero);
+        mpq_set_ui(m_zero, 0, 1);
+        MTBDD zero = mtbdd_gmp(m_zero);
+        mpq_clear(m_zero);
+        markov_relation = gmp_max(markov_relation, zero);
+    }
 
     /* Apply maximal progress cut */
 
     INFO("Computing maximal-progress cut.");
-    markov_relation = mtbdd_times(markov_relation, sylvan_not(tau_states));
+    if (leaftype == 2) markov_relation = gmp_times(markov_relation, sylvan_not(tau_states));
+    else markov_relation = mtbdd_times(markov_relation, sylvan_not(tau_states));
 
     if (verbosity >= 1) {
         INFO("Number of Markovian transitions (mp): %'0.0f", mtbdd_satcount(markov_relation, state_length*2));
@@ -325,7 +334,9 @@ VOID_TASK_IMPL_1(min_imc_strong, sigref::IMC&, imc)
         double i1 = wctime();
 
         // compute strong signature
-        MTBDD signature = mtbdd_and_exists(markov_relation, partition, prime_variables);
+        MTBDD signature;
+        if (leaftype == 2) signature = gmp_and_exists(markov_relation, partition, prime_variables);
+        else signature = mtbdd_and_exists(markov_relation, partition, prime_variables);
 
         if (verbosity >= 2) {
             INFO("Calculated signature: %'zu BDD nodes. Assigning blocks...", mtbdd_nodecount(signature));
@@ -511,11 +522,20 @@ VOID_TASK_IMPL_1(min_imc_branching, sigref::IMC&, imc)
 
     if (leaftype == 0) markov_relation = mtbdd_max(markov_relation, mtbdd_double(0));
     else if (leaftype == 1) markov_relation = mtbdd_max(markov_relation, mtbdd_fraction(0, 1));
+    else if (leaftype == 2) {
+        mpq_t m_zero;
+        mpq_init(m_zero);
+        mpq_set_ui(m_zero, 0, 1);
+        MTBDD zero = mtbdd_gmp(m_zero);
+        mpq_clear(m_zero);
+        markov_relation = gmp_max(markov_relation, zero);
+    }
 
     /* Apply maximal progress cut */
 
     INFO("Computing maximal-progress cut.");
-    markov_relation = mtbdd_times(markov_relation, sylvan_not(tau_states));
+    if (leaftype == 2) markov_relation = gmp_times(markov_relation, sylvan_not(tau_states));
+    else markov_relation = mtbdd_times(markov_relation, sylvan_not(tau_states));
 
     if (verbosity >= 1) {
         INFO("Number of Markovian transitions (mp): %'0.0f", mtbdd_satcount(markov_relation, state_length*2));
@@ -559,7 +579,9 @@ VOID_TASK_IMPL_1(min_imc_branching, sigref::IMC&, imc)
         // compute branching signature
         if (verbosity >= 1) INFO("Computing last step.");
 
-        MTBDD signature = mtbdd_and_exists(markov_relation, partition, prime_variables);
+        MTBDD signature;
+        if (leaftype == 2) signature = gmp_and_exists(markov_relation, partition, prime_variables);
+        else signature = mtbdd_and_exists(markov_relation, partition, prime_variables);
 
         if (verbosity >= 2) INFO("Signature: %'zu BDD nodes.", mtbdd_nodecount(signature));
 

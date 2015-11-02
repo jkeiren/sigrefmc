@@ -26,6 +26,7 @@
 #include <refine.h>
 #include <sigref.h>
 #include <sigref_util.h>
+#include <sylvan_gmp.h>
 
 
 /**
@@ -110,7 +111,9 @@ VOID_TASK_IMPL_1(min_ctmc, sigref::CTMC&, ctmc)
         double i1 = wctime();
 
         // compute signature (s,b) => real/rational
-        MTBDD signature = mtbdd_and_exists(transition_relation, partition, prime_variables);
+        MTBDD signature;
+        if (leaftype == 2) signature = gmp_and_exists(transition_relation, partition, prime_variables);
+        else signature = mtbdd_and_exists(transition_relation, partition, prime_variables);
 
         // print status
         if (verbosity >= 2) {
