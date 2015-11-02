@@ -26,10 +26,13 @@ add_library(sylvan
     sylvan_config.h
     sylvan_common.h
     sylvan_common.c
+    sylvan_gmp.h
+    sylvan_gmp.c
     sylvan_ldd.h
     sylvan_ldd.c
     sylvan_mtbdd.h
     sylvan_mtbdd.c
+    sylvan_mtbdd_int.h
     sylvan_obj.hpp
     sylvan_obj.cpp
     tls.h

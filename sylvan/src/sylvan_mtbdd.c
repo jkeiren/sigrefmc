@@ -31,98 +31,7 @@
 #include <sha2.h>
 #include <sylvan.h>
 #include <sylvan_common.h>
-
-/**
- * MTBDD node structure
- */
-typedef struct __attribute__((packed)) mtbddnode {
-    uint64_t a, b;
-} * mtbddnode_t; // 16 bytes
-
-#define GETNODE(mtbdd) ((mtbddnode_t)llmsset_index_to_ptr(nodes, mtbdd&0x000000ffffffffff))
-
-/**
- * Complement handling macros
- */
-#define MTBDD_HASMARK(s)              (s&mtbdd_complement?1:0)
-#define MTBDD_TOGGLEMARK(s)           (s^mtbdd_complement)
-#define MTBDD_STRIPMARK(s)            (s&~mtbdd_complement)
-#define MTBDD_TRANSFERMARK(from, to)  (to ^ (from & mtbdd_complement))
-// Equal under mark
-#define MTBDD_EQUALM(a, b)            ((((a)^(b))&(~mtbdd_complement))==0)
-
-// Leaf: a = L=1, M, type; b = value
-// Node: a = L=0, C, M, high; b = variable, low
-// Only complement edge on "high"
-
-static inline int
-mtbddnode_isleaf(mtbddnode_t n)
-{
-    return n->a & 0x4000000000000000 ? 1 : 0;
-}
-
-static inline uint32_t
-mtbddnode_gettype(mtbddnode_t n)
-{
-    return n->a & 0x00000000ffffffff;
-}
-
-static inline uint64_t
-mtbddnode_getvalue(mtbddnode_t n)
-{
-    return n->b;
-}
-
-static inline int
-mtbddnode_getcomp(mtbddnode_t n)
-{
-    return n->a & 0x8000000000000000 ? 1 : 0;
-}
-
-static inline uint64_t
-mtbddnode_getlow(mtbddnode_t n)
-{
-    return n->b & 0x000000ffffffffff; // 40 bits
-}
-
-static inline uint64_t
-mtbddnode_gethigh(mtbddnode_t n)
-{
-    return n->a & 0x800000ffffffffff; // 40 bits plus high bit of first
-}
-
-static inline uint32_t
-mtbddnode_getvariable(mtbddnode_t n)
-{
-    return (uint32_t)(n->b >> 40);
-}
-
-static inline int
-mtbddnode_getmark(mtbddnode_t n)
-{
-    return n->a & 0x2000000000000000 ? 1 : 0;
-}
-
-static inline void
-mtbddnode_setmark(mtbddnode_t n, int mark)
-{
-    if (mark) n->a |= 0x2000000000000000;
-    else n->a &= 0xdfffffffffffffff;
-}
-
-static inline void
-mtbddnode_makeleaf(mtbddnode_t n, uint32_t type, uint64_t value)
-{
-    n->a = 0x4000000000000000 | (uint64_t)type;
-    n->b = value;
-}
-
-static inline void
-mtbddnode_makenode(mtbddnode_t n, uint32_t var, uint64_t low, uint64_t high)
-{
-    n->a = high;
-    n->b = ((uint64_t)var)<<40 | low;
-}
+#include <sylvan_mtbdd_int.h>
 
 /* Primitives */
 int
@@ -137,18 +46,6 @@ uint32_t
 mtbdd_getvar(MTBDD node)
 {
     return mtbddnode_getvariable(GETNODE(node));
-}
-
-MTBDD
-node_getlow(MTBDD mtbdd, mtbddnode_t node)
-{
-    return MTBDD_TRANSFERMARK(mtbdd, mtbddnode_getlow(node));
-}
-
-MTBDD
-node_gethigh(MTBDD mtbdd, mtbddnode_t node)
-{
-    return MTBDD_TRANSFERMARK(mtbdd, mtbddnode_gethigh(node));
 }
 
 MTBDD
@@ -342,6 +239,90 @@ VOID_TASK_0(mtbdd_refs_init)
 }
 
 /**
+ * Handling of custom leaves "registry"
+ */
+
+typedef struct
+{
+    mtbdd_hash_cb hash_cb;
+    mtbdd_equals_cb equals_cb;
+    mtbdd_create_cb create_cb;
+    mtbdd_destroy_cb destroy_cb;
+} customleaf_t;
+
+static customleaf_t *cl_registry;
+static size_t cl_registry_count;
+
+static void
+_mtbdd_create_cb(uint64_t *a, uint64_t *b)
+{
+    // for leaf
+    if ((*a & 0x4000000000000000) == 0) return; // huh?
+    uint32_t type = *a & 0xffffffff;
+    if (type >= cl_registry_count) return; // not in registry
+    customleaf_t *c = cl_registry + type;
+    if (c->create_cb == NULL) return; // not in registry
+    c->create_cb(b);
+}
+
+static void
+_mtbdd_destroy_cb(uint64_t a, uint64_t b)
+{
+    // for leaf
+    if ((a & 0x4000000000000000) == 0) return; // huh?
+    uint32_t type = a & 0xffffffff;
+    if (type >= cl_registry_count) return; // not in registry
+    customleaf_t *c = cl_registry + type;
+    if (c->destroy_cb == NULL) return; // not in registry
+    c->destroy_cb(b);
+}
+
+static uint64_t
+_mtbdd_hash_cb(uint64_t a, uint64_t b, uint64_t seed)
+{
+    // for leaf
+    if ((a & 0x4000000000000000) == 0) return llmsset_hash(a, b, seed);
+    uint32_t type = a & 0xffffffff;
+    if (type >= cl_registry_count) return llmsset_hash(a, b, seed);
+    customleaf_t *c = cl_registry + type;
+    if (c->hash_cb == NULL) return llmsset_hash(a, b, seed);
+    return c->hash_cb(b, seed ^ a);
+}
+
+static int
+_mtbdd_equals_cb(uint64_t a, uint64_t b, uint64_t aa, uint64_t bb)
+{
+    // for leaf
+    if (a != aa) return 0;
+    if ((a & 0x4000000000000000) == 0) return b == bb ? 1 : 0;
+    if ((aa & 0x4000000000000000) == 0) return b == bb ? 1 : 0;
+    uint32_t type = a & 0xffffffff;
+    if (type >= cl_registry_count) return b == bb ? 1 : 0;
+    customleaf_t *c = cl_registry + type;
+    if (c->equals_cb == NULL) return b == b ? 1 : 0;
+    return c->equals_cb(b, bb);
+}
+
+void
+mtbdd_register_custom_leaf(uint32_t type, mtbdd_hash_cb hash_cb, mtbdd_equals_cb equals_cb, mtbdd_create_cb create_cb, mtbdd_destroy_cb destroy_cb)
+{
+    if (cl_registry == NULL) {
+        cl_registry = (customleaf_t *)calloc(sizeof(customleaf_t), (type+1));
+        cl_registry_count = type+1;
+        llmsset_set_custom(nodes, _mtbdd_hash_cb, _mtbdd_equals_cb, _mtbdd_create_cb, _mtbdd_destroy_cb);
+    } else if (cl_registry_count <= type) {
+        cl_registry = (customleaf_t *)realloc(cl_registry, sizeof(customleaf_t) * (type+1));
+        memset(cl_registry + cl_registry_count, 0, sizeof(customleaf_t) * (type+1-cl_registry_count));
+        cl_registry_count = type+1;
+    }
+    customleaf_t *c = cl_registry + type;
+    c->hash_cb = hash_cb;
+    c->equals_cb = equals_cb;
+    c->create_cb = create_cb;
+    c->destroy_cb = destroy_cb;
+}
+
+/**
  * Initialize and quit functions
  */
 
@@ -352,6 +333,11 @@ mtbdd_quit()
     if (mtbdd_protected_created) {
         protect_free(&mtbdd_protected);
         mtbdd_protected_created = 0;
+    }
+    if (cl_registry != NULL) {
+        free(cl_registry);
+        cl_registry = NULL;
+        cl_registry_count = 0;
     }
 }
 
@@ -376,6 +362,9 @@ sylvan_init_mtbdd()
 
     LACE_ME;
     CALL(mtbdd_refs_init);
+
+    cl_registry = NULL;
+    cl_registry_count = 0;
 }
 
 /**
@@ -387,14 +376,16 @@ mtbdd_makeleaf(uint32_t type, uint64_t value)
     struct mtbddnode n;
     mtbddnode_makeleaf(&n, type, value);
 
+    int custom = type < cl_registry_count && cl_registry[type].hash_cb != NULL ? 1 : 0;
+
     int created;
-    uint64_t index = llmsset_lookup(nodes, n.a, n.b, &created);
+    uint64_t index = custom ? llmsset_lookupc(nodes, n.a, n.b, &created) : llmsset_lookup(nodes, n.a, n.b, &created);
     if (index == 0) {
         LACE_ME;
 
         sylvan_gc();
 
-        index = llmsset_lookup(nodes, n.a, n.b, &created);
+        index = custom ? llmsset_lookupc(nodes, n.a, n.b, &created) : llmsset_lookup(nodes, n.a, n.b, &created);
         if (index == 0) {
             fprintf(stderr, "BDD Unique table full, %zu of %zu buckets filled!\n", llmsset_count_marked(nodes), llmsset_get_size(nodes));
             exit(1);
