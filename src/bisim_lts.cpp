@@ -18,6 +18,7 @@
 #include <sys/time.h>
 
 #include <sylvan.h>
+#include <sylvan_int.h>
 #include <sylvan_obj.hpp>
 
 #include <bisimulation.h>

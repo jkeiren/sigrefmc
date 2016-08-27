@@ -15,7 +15,7 @@
  */
 
 #include <sigref_util.h>
-#include <sylvan_common.h>
+#include <sylvan_int.h>
 
 /* Calculate random height */
 DECLARE_THREAD_LOCAL(thread_rng, uint64_t);
@@ -48,7 +48,7 @@ TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
     if (c == sylvan_true) return sylvan_and(a, b);
 
     BDD result;
-    if (cache_get(a|(260LL<<42), b, c, &result)) return result;
+    if (cache_get3(260LL<<42, a, b, c, &result)) return result;
 
     sylvan_gc_test();
 
@@ -90,7 +90,7 @@ TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
     result = sylvan_makenode(var, low, high);
     bdd_refs_pop(1);
 
-    cache_put(a|(260LL<<42), b, c, result);
+    cache_put3(260LL<<42, a, b, c, result);
     return result;
 }
 

@@ -18,8 +18,7 @@
 #include <stdio.h>
 #include <sys/mman.h> // for mmap, munmap, etc
 
-#include <sylvan.h>
-#include <sylvan_common.h> // for sylvan_gc_test
+#include <sylvan_int.h>
 
 #include <sigref.h>
 #include <sigref_util.h>
@@ -163,9 +162,9 @@ TASK_3(BDD, refine_partition, BDD, dd, BDD, vars, BDD, previous_partition)
 
     if (sylvan_set_isempty(vars)) {
         BDD result;
-        if (cache_get(dd|(256LL<<42), vars, previous_partition|(refine_iteration<<40), &result)) return result;
+        if (cache_get3(256LL<<42, dd, vars, previous_partition|(refine_iteration<<40), &result)) return result;
         result = CALL(assign_block, dd, previous_partition);
-        cache_put(dd|(256LL<<42), vars, previous_partition|(refine_iteration<<40), result);
+        cache_put3(256LL<<42, dd, vars, previous_partition|(refine_iteration<<40), result);
         return result;
     }
 
@@ -176,12 +175,12 @@ TASK_3(BDD, refine_partition, BDD, dd, BDD, vars, BDD, previous_partition)
 
     BDDVAR dd_var = sylvan_isconst(dd) ? 0xffffffff : sylvan_var(dd);
     BDDVAR pp_var = sylvan_var(previous_partition);
-    BDDVAR vars_var = sylvan_set_var(vars);
+    BDDVAR vars_var = sylvan_set_first(vars);
 
     while (vars_var < dd_var && vars_var+1 < pp_var) {
         vars = sylvan_set_next(vars);
         if (sylvan_set_isempty(vars)) return CALL(refine_partition, dd, vars, previous_partition);
-        vars_var = sylvan_set_var(vars);
+        vars_var = sylvan_set_first(vars);
     }
 
     /* Consult cache */

@@ -155,12 +155,11 @@ VOID_TASK_1(main_lace, void*, arg)
 {
     setlocale(LC_NUMERIC, "en_US.utf-8");
 
-    sylvan_init_package(1LL<<26, 1LL<<31, 1LL<<25, 1LL<<30);
-    sylvan_init_bdd(3);
+    sylvan_init_package(1LL<<26, 1LL<<27, 1LL<<25, 1LL<<26);
     sylvan_init_mtbdd();
     gmp_init();
-    sylvan_gc_add_mark(0, TASK(gc_start));
-    sylvan_gc_add_mark(40, TASK(gc_end));
+    sylvan_gc_hook_pregc(TASK(gc_start));
+    sylvan_gc_hook_postgc(TASK(gc_end));
 
     CALL(init_trng);
 

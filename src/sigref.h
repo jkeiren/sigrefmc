@@ -31,4 +31,8 @@ extern double t_start;
 double wctime();
 #define INFO(s, ...) fprintf(stdout, "[% 8.2f] " s "\n", wctime()-t_start, ##__VA_ARGS__)
 
+#ifndef cas
+#define cas(ptr, old, new) (__sync_bool_compare_and_swap((ptr),(old),(new)))
+#endif
+
 #endif

@@ -18,8 +18,8 @@
 #include <sys/time.h>
 
 #include <sylvan.h>
+#include <sylvan_int.h>
 #include <sylvan_obj.hpp>
-#include <sylvan_common.h>
 
 #include <bisimulation.h>
 #include <blocks.h>
