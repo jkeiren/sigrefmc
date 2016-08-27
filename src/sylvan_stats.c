@@ -1,5 +1,6 @@
 /*
- * Copyright 2011-2014 Formal Methods and Tools, University of Twente
+ * Copyright 2011-2016 Formal Methods and Tools, University of Twente
+ * Copyright 2016 Tom van Dijk, Johannes Kepler University Linz
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +15,29 @@
  * limitations under the License.
  */
 
+#include <errno.h>  // for errno
 #include <string.h> // memset
-#include <stats.h>
+#include <sylvan_stats.h>
 #include <sys/mman.h>
 #include <inttypes.h>
-#include <sylvan.h> // for nodes table
+
+#include <sylvan_int.h>
+
+#if SYLVAN_STATS
 
 #ifdef __ELF__
 __thread sylvan_stats_t sylvan_stats;
 #else
 pthread_key_t sylvan_stats_key;
+#endif
+
+#ifndef USE_HWLOC
+#define USE_HWLOC 0
+#endif
+
+#if USE_HWLOC
+#include <hwloc.h>
+static hwloc_topology_t topo;
 #endif
 
 VOID_TASK_0(sylvan_stats_reset_perthread)
@@ -38,8 +52,16 @@ VOID_TASK_0(sylvan_stats_reset_perthread)
 #else
     sylvan_stats_t *sylvan_stats = pthread_getspecific(sylvan_stats_key);
     if (sylvan_stats == NULL) {
-        sylvan_stats = mmap(0, sizeof(sylvan_stats_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, 0, 0);
-        // TODO: hwloc
+        sylvan_stats = mmap(0, sizeof(sylvan_stats_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (sylvan_stats == (sylvan_stats_t *)-1) {
+            fprintf(stderr, "sylvan_stats: Unable to allocate memory: %s!\n", strerror(errno));
+            exit(1);
+        }
+#if USE_HWLOC
+        // Ensure the stats object is on our pu
+        hwloc_obj_t pu = hwloc_get_obj_by_type(topo, HWLOC_OBJ_PU, LACE_WORKER_PU);
+        hwloc_set_area_membind(topo, sylvan_stats, sizeof(sylvan_stats_t), pu->cpuset, HWLOC_MEMBIND_BIND, 0);
+#endif
         pthread_setspecific(sylvan_stats_key, sylvan_stats);
     }
     for (int i=0; i<SYLVAN_COUNTER_COUNTER; i++) {
@@ -55,6 +77,10 @@ VOID_TASK_IMPL_0(sylvan_stats_init)
 {
 #ifndef __ELF__
     pthread_key_create(&sylvan_stats_key, NULL);
+#endif
+#if USE_HWLOC
+    hwloc_topology_init(&topo);
+    hwloc_topology_load(topo);
 #endif
     TOGETHER(sylvan_stats_reset_perthread);
 }
@@ -198,3 +224,24 @@ sylvan_stats_report(FILE *target, int color)
     fprintf(target, "Number of lookup iterations: %'"PRIu64"\n", totals.counters[LLMSSET_LOOKUP]);
 #endif
 }
+
+#else
+
+VOID_TASK_IMPL_0(sylvan_stats_init)
+{
+}
+
+VOID_TASK_IMPL_0(sylvan_stats_reset)
+{
+}
+
+void
+sylvan_stats_report(FILE* target, int color)
+{
+    (void)target;
+    (void)color;
+}
+
+
+
+#endif

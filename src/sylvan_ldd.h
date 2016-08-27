@@ -1,5 +1,6 @@
 /*
- * Copyright 2011-2014 Formal Methods and Tools, University of Twente
+ * Copyright 2011-2016 Formal Methods and Tools, University of Twente
+ * Copyright 2016 Tom van Dijk, Johannes Kepler University Linz
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +68,9 @@ size_t lddmc_count_refs();
 #define lddmc_notify_ondead(mdd) llmsset_notify_ondead(nodes, mdd)
 
 /* Sanity check - returns depth of MDD including 'true' terminal or 0 for empty set */
+#ifndef NDEBUG
 size_t lddmc_test_ismdd(MDD mdd);
+#endif
 
 /* Operations for model checking */
 TASK_DECL_2(MDD, lddmc_union, MDD, MDD);
