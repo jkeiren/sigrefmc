@@ -1,5 +1,6 @@
 /*
- * Copyright 2011-2015 Formal Methods and Tools, University of Twente
+ * Copyright 2011-2016 Formal Methods and Tools, University of Twente
+ * Copyright 2016 Tom van Dijk, Johannes Kepler University Linz
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +15,8 @@
  * limitations under the License.
  */
 
-#include <lace.h>
 #include <sylvan_config.h>
+#include <lace.h>
 
 #ifndef SYLVAN_STATS_H
 #define SYLVAN_STATS_H
@@ -127,6 +128,9 @@ typedef enum
     SYLVAN_TIMER_COUNTER
 } Sylvan_Timers;
 
+/**
+ * Initialize stats system (done by sylvan_init_package)
+ */
 #define sylvan_stats_init() CALL(sylvan_stats_init)
 VOID_TASK_DECL_0(sylvan_stats_init)
 
@@ -141,6 +145,8 @@ VOID_TASK_DECL_0(sylvan_stats_reset)
  */
 void sylvan_stats_report(FILE* target, int color);
 
+#if SYLVAN_STATS
+
 /* Infrastructure for internal markings */
 typedef struct
 {
@@ -148,8 +154,6 @@ typedef struct
     uint64_t timers[SYLVAN_TIMER_COUNTER];
     uint64_t timers_startstop[SYLVAN_TIMER_COUNTER];
 } sylvan_stats_t;
-
-#if SYLVAN_STATS
 
 #ifdef __MACH__
 #include <mach/mach_time.h>
