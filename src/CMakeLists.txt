@@ -6,10 +6,33 @@ set(CMAKE_CXX_FLAGS "-g -O3 -Wall -Wextra -Werror -std=gnu++11")
 
 include_directories(.)
 
-add_executable(sigrefmc sigref.cpp sigref.h bisim_ctmc.cpp bisim_lts.cpp bisim_imc.cpp getrss.h getrss.c blocks.h blocks.c inert.h inert.c parse_bdd.hpp parse_bdd.cpp parse_xml.hpp parse_xml.cpp refine_sl.c systems.hpp sigref_util.h sigref_util.cpp)
+set(SOURCES
+    bisimulation.h
+    bisim_ctmc.cpp
+    bisim_lts.cpp
+    bisim_imc.cpp
+    getrss.h
+    getrss.c
+    blocks.h
+    blocks.c
+    inert.h
+    inert.c
+    parse_bdd.hpp
+    parse_bdd.cpp
+    parse_xml.hpp
+    parse_xml.cpp
+    refine.h
+    systems.hpp
+    sigref.h
+    sigref.cpp
+    sigref_util.h
+    sigref_util.cpp
+    )
+
+add_executable(sigrefmc ${SOURCES} refine_sl.c)
 target_link_libraries(sigrefmc sylvan tinyxml gmp)
 
-add_executable(sigrefmc_ht sigref.cpp sigref.h bisim_ctmc.cpp bisim_lts.cpp bisim_imc.cpp getrss.h getrss.c blocks.h blocks.c inert.h inert.c parse_bdd.hpp parse_bdd.cpp parse_xml.hpp parse_xml.cpp refine_ht.c systems.hpp sigref_util.h sigref_util.cpp)
+add_executable(sigrefmc_ht ${SOURCES} refine_ht.c)
 target_link_libraries(sigrefmc_ht sylvan tinyxml gmp)
 
 include(CheckIncludeFiles)
