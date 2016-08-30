@@ -30,6 +30,7 @@
 #include <sylvan_int.h>
 
 #include <sylvan_refs.h>
+#include <sylvan_sl.h>
 #include <sha2.h>
 
 /* Primitives */
@@ -254,6 +255,7 @@ typedef struct
     mtbdd_equals_cb equals_cb;
     mtbdd_create_cb create_cb;
     mtbdd_destroy_cb destroy_cb;
+    leaf_to_str_cb to_str_cb;
 } customleaf_t;
 
 static customleaf_t *cl_registry;
@@ -310,7 +312,7 @@ _mtbdd_equals_cb(uint64_t a, uint64_t b, uint64_t aa, uint64_t bb)
 }
 
 uint32_t
-mtbdd_register_custom_leaf(mtbdd_hash_cb hash_cb, mtbdd_equals_cb equals_cb, mtbdd_create_cb create_cb, mtbdd_destroy_cb destroy_cb)
+mtbdd_register_custom_leaf(mtbdd_hash_cb hash_cb, mtbdd_equals_cb equals_cb, mtbdd_create_cb create_cb, mtbdd_destroy_cb destroy_cb, leaf_to_str_cb to_str_cb)
 {
     uint32_t type = cl_registry_count;
     if (type == 0) type = 3;
@@ -328,6 +330,7 @@ mtbdd_register_custom_leaf(mtbdd_hash_cb hash_cb, mtbdd_equals_cb equals_cb, mtb
     c->equals_cb = equals_cb;
     c->create_cb = create_cb;
     c->destroy_cb = destroy_cb;
+    c->to_str_cb = to_str_cb;
     return type;
 }
 
@@ -2294,6 +2297,100 @@ mtbdd_enum_next(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb fi
     }
 }
 
+MTBDD
+mtbdd_enum_all_first(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb)
+{
+    if (dd == mtbdd_false) {
+        // the leaf dd is skipped
+        return mtbdd_false;
+    } else if (mtbdd_isleaf(dd)) {
+        // a leaf for which the filter returns 0 is skipped
+        if (filter_cb != NULL && filter_cb(dd) == 0) return mtbdd_false;
+        // ok, we have a leaf that is not skipped, go for it!
+        while (variables != mtbdd_true) {
+            *arr++ = 0;
+            variables = mtbdd_gethigh(variables);
+        }
+        return dd;
+    } else {
+        // if variables == true, then dd must be a leaf. But then this line is unreachable.
+        // if this assertion fails, then <variables> is not the support of <dd>.
+        assert(variables != mtbdd_true);
+
+        // get next variable from <variables>
+        uint32_t v = mtbdd_getvar(variables);
+        variables = mtbdd_gethigh(variables);
+
+        // check if MTBDD is on this variable
+        mtbddnode_t n = MTBDD_GETNODE(dd);
+        if (mtbddnode_getvariable(n) != v) {
+            *arr = 0;
+            return mtbdd_enum_all_first(dd, variables, arr+1, filter_cb);
+        }
+
+        // first maybe follow low
+        MTBDD res = mtbdd_enum_all_first(node_getlow(dd, n), variables, arr+1, filter_cb);
+        if (res != mtbdd_false) {
+            *arr = 0;
+            return res;
+        }
+
+        // if not low, try following high
+        res = mtbdd_enum_all_first(node_gethigh(dd, n), variables, arr+1, filter_cb);
+        if (res != mtbdd_false) {
+            *arr = 1;
+            return res;
+        }
+
+        // we've tried low and high, return false
+        return mtbdd_false;
+    }
+}
+
+MTBDD
+mtbdd_enum_all_next(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb)
+{
+    if (mtbdd_isleaf(dd)) {
+        // we find the leaf in 'enum_next', then we've seen it before...
+        return mtbdd_false;
+    } else {
+        // if variables == true, then dd must be a leaf. But then this line is unreachable.
+        // if this assertion fails, then <variables> is not the support of <dd>.
+        assert(variables != mtbdd_true);
+
+        uint32_t v = mtbdd_getvar(variables);
+        variables = mtbdd_gethigh(variables);
+
+        if (*arr == 0) {
+            // previous was low
+            mtbddnode_t n = MTBDD_GETNODE(dd);
+            MTBDD low = v == mtbddnode_getvariable(n) ? node_getlow(dd, n) : dd;
+            MTBDD res = mtbdd_enum_all_next(low, variables, arr+1, filter_cb);
+            if (res != mtbdd_false) {
+                return res;
+            } else {
+                // try to find new in high branch
+                MTBDD high = v == mtbddnode_getvariable(n) ? node_gethigh(dd, n) : dd;
+                res = mtbdd_enum_all_first(high, variables, arr+1, filter_cb);
+                if (res != mtbdd_false) {
+                    *arr = 1;
+                    return res;
+                } else {
+                    return mtbdd_false;
+                }
+            }
+        } else if (*arr == 1) {
+            // previous was high
+            mtbddnode_t n = MTBDD_GETNODE(dd);
+            MTBDD high = v == mtbddnode_getvariable(n) ? node_gethigh(dd, n) : dd;
+            return mtbdd_enum_all_next(high, variables, arr+1, filter_cb);
+        } else {
+            // previous was either
+            return mtbdd_enum_all_next(dd, variables, arr+1, filter_cb);
+        }
+    }
+}
+
 /**
  * Helper function for recursive unmarking
  */
@@ -2424,11 +2521,81 @@ TASK_IMPL_1(int, mtbdd_test_isvalid, MTBDD, dd)
 }
 
 /**
+ * Write a text representation of a leaf to the given file.
+ */
+void
+mtbdd_fprint_leaf(FILE *out, MTBDD leaf)
+{
+    char buf[64];
+    char *ptr = mtbdd_leaf_to_str(leaf, buf, 64);
+    if (ptr != NULL) {
+        fputs(ptr, out);
+        if (ptr != buf) free(ptr);
+    }
+}
+
+/**
+ * Write a text representation of a leaf to stdout.
+ */
+void
+mtbdd_print_leaf(MTBDD leaf)
+{
+    mtbdd_fprint_leaf(stdout, leaf);
+}
+
+/**
+ * Obtain the textual representation of a leaf.
+ * The returned result is either equal to the given <buf> (if the results fits)
+ * or to a newly allocated array (with malloc).
+ */
+char *
+mtbdd_leaf_to_str(MTBDD leaf, char *buf, size_t buflen)
+{
+    mtbddnode_t n = MTBDD_GETNODE(leaf);
+    uint32_t type = mtbddnode_gettype(n);
+    uint64_t value = mtbddnode_getvalue(n);
+    int complement = MTBDD_HASMARK(leaf) ? 1 : 0;
+
+    if (type == 0) {
+        char *ptr = buf;
+        if (buflen < 32) {
+            ptr = malloc(32);
+            buflen = 32;
+        }
+        snprintf(ptr, buflen, "%" PRId64, (int64_t)value);
+        return ptr;
+    } else if (type == 1) {
+        char *ptr = buf;
+        if (buflen < 32) {
+            ptr = malloc(32);
+            buflen = 32;
+        }
+        snprintf(ptr, buflen, "%f", *(double*)&value);
+        return ptr;
+    } else if (type == 2) {
+        char *ptr = buf;
+        if (buflen < 32) {
+            ptr = malloc(32);
+            buflen = 32;
+        }
+        int32_t num = (int32_t)(value>>32);
+        uint32_t denom = value&0xffffffff;
+        snprintf(ptr, buflen, "%" PRId32 "/%" PRIu32, num, denom);
+        return ptr;
+    } else if (type < cl_registry_count) {
+        customleaf_t *c = cl_registry + type;
+        if (c->to_str_cb != NULL) return c->to_str_cb(complement, value, buf, buflen);
+    }
+
+    return NULL;
+}
+
+/**
  * Export to .dot file
  */
 
 static void
-mtbdd_fprintdot_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
+mtbdd_fprintdot_rec(FILE *out, MTBDD mtbdd)
 {
     mtbddnode_t n = MTBDD_GETNODE(mtbdd); // also works for mtbdd_false
     if (mtbddnode_getmark(n)) return;
@@ -2437,30 +2604,15 @@ mtbdd_fprintdot_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
     if (mtbdd == mtbdd_true || mtbdd == mtbdd_false) {
         fprintf(out, "0 [shape=box, style=filled, label=\"F\"];\n");
     } else if (mtbddnode_isleaf(n)) {
-        uint32_t type = mtbddnode_gettype(n);
-        uint64_t value = mtbddnode_getvalue(n);
         fprintf(out, "%" PRIu64 " [shape=box, style=filled, label=\"", MTBDD_STRIPMARK(mtbdd));
-        switch (type) {
-        case 0:
-            fprintf(out, "%" PRIu64, value);
-            break;
-        case 1:
-            fprintf(out, "%f", *(double*)&value);
-            break;
-        case 2:
-            fprintf(out, "%u/%u", (uint32_t)(value>>32), (uint32_t)value);
-            break;
-        default:
-            cb(out, 0, type, value);
-            break;
-        }
+        mtbdd_fprint_leaf(out, mtbdd);
         fprintf(out, "\"];\n");
     } else {
         fprintf(out, "%" PRIu64 " [label=\"%" PRIu32 "\"];\n",
                 MTBDD_STRIPMARK(mtbdd), mtbddnode_getvariable(n));
 
-        mtbdd_fprintdot_rec(out, mtbddnode_getlow(n), cb);
-        mtbdd_fprintdot_rec(out, mtbddnode_gethigh(n), cb);
+        mtbdd_fprintdot_rec(out, mtbddnode_getlow(n));
+        mtbdd_fprintdot_rec(out, mtbddnode_gethigh(n));
 
         fprintf(out, "%" PRIu64 " -> %" PRIu64 " [style=dashed];\n",
                 MTBDD_STRIPMARK(mtbdd), mtbddnode_getlow(n));
@@ -2471,7 +2623,7 @@ mtbdd_fprintdot_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
 }
 
 void
-mtbdd_fprintdot(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
+mtbdd_fprintdot(FILE *out, MTBDD mtbdd)
 {
     fprintf(out, "digraph \"DD\" {\n");
     fprintf(out, "graph [dpi = 300];\n");
@@ -2481,7 +2633,7 @@ mtbdd_fprintdot(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
     fprintf(out, "root -> %" PRIu64 " [style=solid dir=both arrowtail=%s];\n",
             MTBDD_STRIPMARK(mtbdd), MTBDD_HASMARK(mtbdd) ? "dot" : "none");
 
-    mtbdd_fprintdot_rec(out, mtbdd, cb);
+    mtbdd_fprintdot_rec(out, mtbdd);
     mtbdd_unmark_rec(mtbdd);
 
     fprintf(out, "}\n");
@@ -2492,7 +2644,7 @@ mtbdd_fprintdot(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
  */
 
 static void
-mtbdd_fprintdot_nc_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
+mtbdd_fprintdot_nc_rec(FILE *out, MTBDD mtbdd)
 {
     mtbddnode_t n = MTBDD_GETNODE(mtbdd); // also works for mtbdd_false
     if (mtbddnode_getmark(n)) return;
@@ -2503,29 +2655,14 @@ mtbdd_fprintdot_nc_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
     } else if (mtbdd == mtbdd_false) {
         fprintf(out, "0 [shape=box, style=filled, label=\"F\"];\n");
     } else if (mtbddnode_isleaf(n)) {
-        uint32_t type = mtbddnode_gettype(n);
-        uint64_t value = mtbddnode_getvalue(n);
         fprintf(out, "%" PRIu64 " [shape=box, style=filled, label=\"", mtbdd);
-        switch (type) {
-        case 0:
-            fprintf(out, "%" PRIu64, value);
-            break;
-        case 1:
-            fprintf(out, "%f", *(double*)&value);
-            break;
-        case 2:
-            fprintf(out, "%u/%u", (uint32_t)(value>>32), (uint32_t)value);
-            break;
-        default:
-            cb(out, MTBDD_HASMARK(mtbdd), type, value);
-            break;
-        }
+        mtbdd_fprint_leaf(out, mtbdd);
         fprintf(out, "\"];\n");
     } else {
         fprintf(out, "%" PRIu64 " [label=\"%" PRIu32 "\"];\n", mtbdd, mtbddnode_getvariable(n));
 
-        mtbdd_fprintdot_rec(out, mtbddnode_getlow(n), cb);
-        mtbdd_fprintdot_rec(out, mtbddnode_gethigh(n), cb);
+        mtbdd_fprintdot_nc_rec(out, mtbddnode_getlow(n));
+        mtbdd_fprintdot_nc_rec(out, mtbddnode_gethigh(n));
 
         fprintf(out, "%" PRIu64 " -> %" PRIu64 " [style=dashed];\n", mtbdd, node_getlow(mtbdd, n));
         fprintf(out, "%" PRIu64 " -> %" PRIu64 " [style=solid];\n", mtbdd, node_gethigh(mtbdd, n));
@@ -2533,7 +2670,7 @@ mtbdd_fprintdot_nc_rec(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
 }
 
 void
-mtbdd_fprintdot_nc(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
+mtbdd_fprintdot_nc(FILE *out, MTBDD mtbdd)
 {
     fprintf(out, "digraph \"DD\" {\n");
     fprintf(out, "graph [dpi = 300];\n");
@@ -2542,7 +2679,7 @@ mtbdd_fprintdot_nc(FILE *out, MTBDD mtbdd, print_terminal_label_cb cb)
     fprintf(out, "root [style=invis];\n");
     fprintf(out, "root -> %" PRIu64 " [style=solid];\n", mtbdd);
 
-    mtbdd_fprintdot_nc_rec(out, mtbdd, cb);
+    mtbdd_fprintdot_nc_rec(out, mtbdd);
     mtbdd_unmark_rec(mtbdd);
 
     fprintf(out, "}\n");
@@ -2632,6 +2769,144 @@ VOID_TASK_IMPL_4(mtbdd_visit_par, MTBDD, dd, mtbdd_visit_pre_cb, pre_cb, mtbdd_v
         SYNC(mtbdd_visit_par);
     }
     if (post_cb != NULL) WRAP(post_cb, dd, ctx);
+}
+
+/**
+ * Serialization using a skiplist as a backend
+ *
+ * Call mtbdd_serialize_alloc to allocate the ser_data_t datastructure
+ * Then use mtbdd_serialize_add to add each MTBDD.
+ * Use mtbdd_serialize_get to convert each to internal id
+ */
+
+TASK_2(int, mtbdd_serialize_add_visitor_pre, MTBDD, dd, skiplist_t, sl)
+{
+    if (mtbdd_isleaf(dd)) return 0;
+    return skiplist_get(sl, MTBDD_STRIPMARK(dd)) == 0 ? 1 : 0;
+}
+
+VOID_TASK_2(mtbdd_serialize_add_visitor_post, MTBDD, dd, skiplist_t, sl)
+{
+    if (dd == mtbdd_true || dd == mtbdd_false) return;
+    skiplist_assign_next(sl, MTBDD_STRIPMARK(dd));
+}
+
+VOID_TASK_2(mtbdd_serialize_add, skiplist_t, sl, MTBDD, dd)
+{
+    mtbdd_visit_seq(dd, (mtbdd_visit_pre_cb)TASK(mtbdd_serialize_add_visitor_pre), (mtbdd_visit_post_cb)TASK(mtbdd_serialize_add_visitor_post), (void*)sl);
+}
+
+VOID_TASK_IMPL_3(mtbdd_serialize_tobinary, FILE *, out, MTBDD *, dds, int, count)
+{
+    size_t sl_size = nodes->table_size > 0x7fffffff ? 0x7fffffff : nodes->table_size;
+    skiplist_t sl = skiplist_alloc(sl_size);
+    for (int i=0; i<count; i++) {
+        CALL(mtbdd_serialize_add, sl, dds[i]);
+    }
+
+    size_t nodecount = skiplist_count(sl);
+    fwrite(&nodecount, sizeof(size_t), 1, out);
+    for (size_t i=1; i<=nodecount; i++) {
+        MTBDD dd = skiplist_getr(sl, i);
+
+        mtbddnode_t n = MTBDD_GETNODE(dd);
+        if (mtbddnode_isleaf(n)) {
+            /* serialize leaf, does not support customs yet */
+            fwrite(n, sizeof(struct mtbddnode), 1, out);
+        } else {
+            struct mtbddnode node;
+            MTBDD low = skiplist_get(sl, mtbddnode_getlow(n));
+            MTBDD high = mtbddnode_gethigh(n);
+            high = MTBDD_TRANSFERMARK(high, skiplist_get(sl, MTBDD_STRIPMARK(high)));
+            mtbddnode_makenode(&node, mtbddnode_getvariable(n), low, high);
+            fwrite(&node, sizeof(struct mtbddnode), 1, out);
+        }
+    }
+
+    for (int i=0; i<count; i++) {
+        uint64_t v = MTBDD_TRANSFERMARK(dds[i], skiplist_get(sl, MTBDD_STRIPMARK(dds[i])));
+        fwrite(&v, sizeof(uint64_t), 1, out);
+    }
+
+    skiplist_free(sl);
+}
+
+TASK_IMPL_3(int, mtbdd_serialize_frombinary, FILE*, in, MTBDD*, dds, int, count)
+{
+    size_t nodecount;
+    if (fread(&nodecount, sizeof(size_t), 1, in) != 1) {
+        return -1;
+    }
+
+    uint64_t *arr = malloc(sizeof(uint64_t)*(nodecount+1));
+    for (size_t i=1; i<=nodecount; i++) {
+        struct mtbddnode node;
+        if (fread(&node, sizeof(struct mtbddnode), 1, in) != 1) {
+            free(arr);
+            return -1;
+        }
+
+        if (mtbddnode_isleaf(&node)) {
+            /* serialize leaf, does not support customs yet */
+            arr[i] = mtbdd_makeleaf(mtbddnode_gettype(&node), mtbddnode_getvalue(&node));
+        } else {
+            MTBDD low = arr[mtbddnode_getlow(&node)];
+            MTBDD high = mtbddnode_gethigh(&node);
+            high = MTBDD_TRANSFERMARK(high, arr[MTBDD_STRIPMARK(high)]);
+            arr[i] = mtbdd_makenode(mtbddnode_getvariable(&node), low, high);
+        }
+    }
+
+    for (int i=0; i<count; i++) {
+        uint64_t v;
+        if (fread(&v, sizeof(uint64_t), 1, in) != 1) {
+            free(arr);
+            return -1;
+        }
+        dds[i] = MTBDD_TRANSFERMARK(v, arr[MTBDD_STRIPMARK(v)]);
+    }
+
+    free(arr);
+    return 0;
+}
+
+VOID_TASK_IMPL_3(mtbdd_serialize_totext, FILE *, out, MTBDD *, dds, int, count)
+{
+    size_t sl_size = nodes->table_size > 0x7fffffff ? 0x7fffffff : nodes->table_size;
+    skiplist_t sl = skiplist_alloc(sl_size);
+    for (int i=0; i<count; i++) {
+        CALL(mtbdd_serialize_add, sl, dds[i]);
+    }
+
+    fprintf(out, "[\n");
+    size_t nodecount = skiplist_count(sl);
+    for (size_t i=1; i<=nodecount; i++) {
+        MTBDD dd = skiplist_getr(sl, i);
+
+        mtbddnode_t n = MTBDD_GETNODE(dd);
+        if (mtbddnode_isleaf(n)) {
+            /* serialize leaf, does not support customs yet */
+            fprintf(out, "  leaf(%zu,%u,\"", i, mtbddnode_gettype(n));
+            mtbdd_fprint_leaf(out, MTBDD_STRIPMARK(dd));
+            fprintf(out, "\"),\n");
+        } else {
+            MTBDD low = skiplist_get(sl, mtbddnode_getlow(n));
+            MTBDD high = mtbddnode_gethigh(n);
+            high = MTBDD_TRANSFERMARK(high, skiplist_get(sl, MTBDD_STRIPMARK(high)));
+            fprintf(out, "  node(%zu,%u,%zu,%s%zu),\n", i, mtbddnode_getvariable(n), (size_t)low, MTBDD_HASMARK(high)?"~":"", (size_t)MTBDD_STRIPMARK(high));
+        }
+    }
+
+    fprintf(out, "],[");
+
+    for (int i=0; i<count; i++) {
+        uint64_t v = MTBDD_TRANSFERMARK(dds[i], skiplist_get(sl, MTBDD_STRIPMARK(dds[i])));
+        fprintf(out, "%s%zu,", MTBDD_HASMARK(v)?"~":"", (size_t)MTBDD_STRIPMARK(v));
+    }
+
+    fprintf(out, "]\n");
+
+    skiplist_free(sl);
 }
 
 /**
