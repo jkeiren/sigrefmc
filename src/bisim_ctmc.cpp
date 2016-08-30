@@ -29,6 +29,8 @@
 #include <sigref_util.h>
 #include <sylvan_gmp.h>
 
+using namespace sylvan;
+
 
 /**
  * Implementation of CTMC minimisation

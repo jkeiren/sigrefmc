@@ -29,6 +29,8 @@
 #include <sigref.h>
 #include <sigref_util.h>
 
+using namespace sylvan;
+
 
 /**
  * Extend a transition relation to a larger domain (using s=s')

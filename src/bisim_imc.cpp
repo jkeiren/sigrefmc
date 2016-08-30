@@ -30,6 +30,9 @@
 #include <sigref_util.h>
 #include <sylvan_gmp.h>
 
+using namespace sylvan;
+
+
 /**
  * Compute equivalent of functions a and b
  * f(x) = a(x) if b(x) == F (not defined in b)

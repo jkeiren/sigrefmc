@@ -19,6 +19,7 @@
 
 using namespace sylvan;
 
+
 namespace sigref {
 
 BddLtsParser::BddLtsParser(const char* filename)

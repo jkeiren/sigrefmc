@@ -2,6 +2,7 @@
  * Heavily modified version of Ralf Wimmer's XML parser
  */
 
+#include <algorithm> // for std::sort
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
 #include "parse_xml.hpp"
@@ -9,6 +10,7 @@
 #include <sylvan_gmp.h>
 
 using namespace sylvan;
+
 
 namespace sigref {
 
