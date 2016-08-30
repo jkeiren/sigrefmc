@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 project(sigref C CXX)
 
-set(CMAKE_C_FLAGS "-g -O3 -Wall -Wextra -Werror -std=gnu11")
-set(CMAKE_CXX_FLAGS "-g -O3 -Wall -Wextra -Werror -std=gnu++11")
-
 include_directories(.)
 
 set(SOURCES
