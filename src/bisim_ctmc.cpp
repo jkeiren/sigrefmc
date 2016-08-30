@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <stddef.h>
 #include <unistd.h>
 #include <sys/time.h>
 

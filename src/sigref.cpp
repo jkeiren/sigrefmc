@@ -16,6 +16,7 @@
 
 #include <argp.h>
 #include <locale.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <sys/time.h>
 

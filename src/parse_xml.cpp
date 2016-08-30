@@ -3,6 +3,7 @@
  */
 
 #include <algorithm> // for std::sort
+#include <cstddef> // to fix errors with gmp
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
 #include "parse_xml.hpp"
