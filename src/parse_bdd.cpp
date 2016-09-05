@@ -119,6 +119,25 @@ BddLtsParser::BddLtsParser(const char* filename)
         lts.states = sylvan_true;
     }
 
+    int actions = 0;
+    if (fread(&actions, sizeof(int), 1, f) == 1) {
+        for (int i=0; i<actions; i++) {
+            uint32_t len;
+            if (fread(&len, sizeof(uint32_t), 1, f) != 1) {
+                fprintf(stderr, "Invalid file format.\n");
+                return;
+            }
+            char s[len+1];
+            s[len] = 0;
+            if (fread(s, sizeof(char), len, f) != len) {
+                fprintf(stderr, "Invalid file format.\n");
+            }
+            if (strcmp(s, "tau") == 0) {
+                tau_action = i;
+            }
+        }
+    }
+
     fclose(f);
 
     /* Compute tau from tau_action (default: 0) */
