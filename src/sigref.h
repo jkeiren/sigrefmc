@@ -25,6 +25,7 @@ extern int verbosity; // default: no excessive node counting
 extern int merge_relations; // merge relations to 1 relation
 extern int closure; // 0 = fixpoint, 1 = squaring, 2 = recursive
 extern int reachable; // 0 = no, 1 = yes
+extern int tau_action; // action label of tau
 
 /* Obtain current wallclock time */
 extern double t_start;

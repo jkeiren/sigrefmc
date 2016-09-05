@@ -45,6 +45,7 @@ int verbosity = 0; // default: no excessive node counting
 int merge_relations = 0; // merge relations to 1 relation
 int closure = 0; // 0 = fixpoint, 1 = squaring, 2 = recursive
 int reachable = 0; // 0 = no, 1 = yes
+int tau_action = 0; // default: 0
 
 /* argp configuration */
 static struct argp_option options[] =
@@ -57,6 +58,7 @@ static struct argp_option options[] =
     {"merge-relations", 'm', 0, 0, "Merge transition relations into one transition relation", 0},
     {"closure", 'c', "<closure>", 0, "Closure algorithm (\"fixpoint\", \"squaring\" or \"recursive\")", 0},
     {"reachable", 'r', 0, 0, "Limit partition to reachable states", 0},
+    {"tau", 't', "<tau-action>", 0, "Which action is tau (default=0)", 0},
 #ifdef HAVE_PROFILER
     {"profiler", 'p', "<filename>", 0, "Filename for profiling", 0},
 #endif
@@ -98,6 +100,9 @@ parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case 'r':
         reachable = 1;
+        break;
+    case 't':
+        tau_action = atoi(arg);
         break;
     case 'c':
         if (arg[0] == 'f') {

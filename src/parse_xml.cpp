@@ -9,6 +9,7 @@
 #include "parse_xml.hpp"
 #include <gmp.h>
 #include <sylvan_gmp.h>
+#include <sigref.h>
 
 using namespace sylvan;
 
@@ -256,7 +257,9 @@ SystemParser::SystemParser(const char* filename, unsigned int verbosity, LeafTyp
             // Default value of tau: 0
             int action_bits = sylvan_set_count(varA.GetBDD());
             std::vector<uint8_t> tau_value;
-            for (int i=0; i<action_bits; i++) tau_value.push_back(0);
+            for (int i=0; i<action_bits; i++) {
+                tau_value.push_back(tau_action & (1LL<<(action_bits-i-1)) ? 1 : 0);
+            }
             tau = Bdd::bddCube(varA, tau_value);
         }
 

@@ -15,6 +15,7 @@
  */
 
 #include <sylvan.h>
+#include <sigref.h>
 #include <parse_bdd.hpp>
 
 using namespace sylvan;
@@ -123,7 +124,9 @@ BddLtsParser::BddLtsParser(const char* filename)
     /* Compute tau from tau_action (default: 0) */
     int action_bits = sylvan_set_count(lts.varA.GetBDD());
     std::vector<uint8_t> tau_value;
-    for (int i=0; i<action_bits; i++) tau_value.push_back(0);
+    for (int i=0; i<action_bits; i++) {
+        tau_value.push_back(tau_action & (1LL<<(action_bits-i-1)) ? 1 : 0);
+    }
     lts.tau = Bdd::bddCube(lts.varA, tau_value);
 
     /* Default initial partition: just 1 block containing the reachable states */
