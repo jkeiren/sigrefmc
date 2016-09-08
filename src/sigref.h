@@ -17,6 +17,13 @@
 #ifndef SIGREF_H
 #define SIGREF_H
 
+/* Cache identifiers */
+#define CACHE_REFINE      (256LL<<42)
+#define CACHE_INERT       (257LL<<42)
+#define CACHE_SWAPPRIME   (258LL<<42)
+#define CACHE_THREEAND    (259LL<<42)
+#define CACHE_EQUI        (260LL<<42)
+
 /* Configuration */
 extern int bisimulation; // branching
 extern int leaftype; // 0 = float, 1 = fraction, 2 = gmp

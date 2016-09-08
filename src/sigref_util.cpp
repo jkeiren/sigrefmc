@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <sigref.h>
 #include <sigref_util.h>
 #include <sylvan_int.h>
 
@@ -48,7 +49,7 @@ TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
     if (c == sylvan_true) return sylvan_and(a, b);
 
     BDD result;
-    if (cache_get3(260LL<<42, a, b, c, &result)) return result;
+    if (cache_get3(CACHE_THREEAND, a, b, c, &result)) return result;
 
     sylvan_gc_test();
 
@@ -90,7 +91,7 @@ TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
     result = sylvan_makenode(var, low, high);
     bdd_refs_pop(1);
 
-    cache_put3(260LL<<42, a, b, c, result);
+    cache_put3(CACHE_THREEAND, a, b, c, result);
     return result;
 }
 
@@ -102,7 +103,7 @@ TASK_IMPL_1(MTBDD, swap_prime, MTBDD, set)
     if (mtbdd_getvar(set) >= 99999) return set;
 
     MTBDD result;
-    if (cache_get(set|(258LL<<42), set, 0, &result)) return result;
+    if (cache_get3(CACHE_SWAPPRIME, set, 0, 0, &result)) return result;
 
     sylvan_gc_test();
 
@@ -112,7 +113,7 @@ TASK_IMPL_1(MTBDD, swap_prime, MTBDD, set)
     result = mtbdd_makenode(sylvan_var(set)^1, low, high);
     mtbdd_refs_pop(1);
 
-    cache_put(set|(258LL<<42), set, 0, result);
+    cache_put3(CACHE_SWAPPRIME, set, 0, 0, result);
     return result;
 }
 

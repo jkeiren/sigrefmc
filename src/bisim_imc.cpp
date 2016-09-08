@@ -68,7 +68,7 @@ TASK_4(MTBDD, equi, MTBDD, a, MTBDD, b, MTBDD, vars, MTBDD, neq)
     }
 
     MTBDD result;
-    if (cache_get(a|(300LL<<42), b, vars, &result)) return result;
+    if (cache_get3(CACHE_EQUI, a, b, vars, &result)) return result;
 
     MTBDD a0 = va == v ? mtbdd_getlow(a) : a;
     MTBDD a1 = va == v ? mtbdd_gethigh(a) : a;
@@ -83,7 +83,7 @@ TASK_4(MTBDD, equi, MTBDD, a, MTBDD, b, MTBDD, vars, MTBDD, neq)
     mtbdd_refs_pop(1);
     result = mtbdd_makenode(v, r0, r1);
 
-    cache_put(a|(300LL<<42), b, vars, result);
+    cache_put3(CACHE_EQUI, a, b, vars, result);
     return result;
 }
 
@@ -121,7 +121,7 @@ TASK_3(MTBDD, relprev, MTBDD, a, MTBDD, b, MTBDD, vars)
 
     /* Consult cache */
     MTBDD result;
-    if (cache_get(a | CACHE_BDD_RELPREV, b, vars, &result)) return result;
+    if (cache_get3(CACHE_BDD_RELPREV, a, b, vars, &result)) return result;
 
     /* Get s and t */
     uint32_t s = level & (~1);
@@ -179,7 +179,7 @@ TASK_3(MTBDD, relprev, MTBDD, a, MTBDD, b, MTBDD, vars)
     mtbdd_refs_pop(5);
     result = mtbdd_makenode(s, r0, r1);
 
-    cache_put(a | CACHE_BDD_RELPREV, b, vars, result);
+    cache_put3(CACHE_BDD_RELPREV, a, b, vars, result);
     return result;
 }
 

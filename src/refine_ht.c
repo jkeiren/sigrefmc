@@ -223,9 +223,9 @@ TASK_3(BDD, refine_partition, BDD, dd, BDD, vars, BDD, previous_partition)
 
     if (sylvan_set_isempty(vars)) {
         BDD result;
-        if (cache_get3(256LL<<42, dd, vars, previous_partition|(refine_iteration<<40), &result)) return result;
+        if (cache_get3(CACHE_REFINE, dd, vars, previous_partition|(refine_iteration<<40), &result)) return result;
         result = CALL(assign_block, dd, previous_partition);
-        cache_put3(256LL<<42, dd, vars, previous_partition|(refine_iteration<<40), result);
+        cache_put3(CACHE_REFINE, dd, vars, previous_partition|(refine_iteration<<40), result);
         return result;
     }
 
@@ -246,7 +246,7 @@ TASK_3(BDD, refine_partition, BDD, dd, BDD, vars, BDD, previous_partition)
 
     /* Consult cache */
     BDD result;
-    if (cache_get(dd|(256LL<<42), vars, previous_partition|(refine_iteration<<40), &result)) {
+    if (cache_get3(CACHE_REFINE, dd, vars, previous_partition|(refine_iteration<<40), &result)) {
         return result;
     }
 
@@ -278,7 +278,7 @@ TASK_3(BDD, refine_partition, BDD, dd, BDD, vars, BDD, previous_partition)
     result = sylvan_makenode(vars_var+1, low, high);
 
     /* Write to cache */
-    cache_put(dd|(256LL<<42), vars, previous_partition|(refine_iteration<<40), result);
+    cache_put3(CACHE_REFINE, dd, vars, previous_partition|(refine_iteration<<40), result);
     return result;
 }
 
