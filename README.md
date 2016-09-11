@@ -1,30 +1,39 @@
-Sylvan [![Build Status](https://travis-ci.org/trolando/sylvan.svg?branch=master)](https://travis-ci.org/trolando/sylvan)
+Sylvan [![Build Status](https://travis-ci.org/utwente-fmt/sylvan.svg?branch=master)](https://travis-ci.org/utwente-fmt/sylvan)
 ======
-Sylvan is a parallel (multi-core) BDD library in C. Sylvan allows both sequential and parallel BDD-based algorithms to benefit from parallelism. Sylvan uses the work-stealing framework Lace and a scalable lockless hashtable to implement scalable multi-core BDD operations.
+Sylvan is a parallel (multi-core) MTBDD library written in C.
+Sylvan implements parallelized operations on BDDs, MTBDDs and LDDs.
+Both sequential and parallel BDD-based algorithms can benefit from parallelism.
+Sylvan uses the work-stealing framework Lace and parallel datastructures to implement scalable multi-core operations on decision diagrams.
 
-Sylvan is developed (&copy; 2011-2016) by the [Formal Methods and Tools](http://fmt.ewi.utwente.nl/) group at the University of Twente as part of the MaDriD project, which is funded by NWO. Sylvan is licensed with the Apache 2.0 license.
+Sylvan is developed (&copy; 2011-2016) by the [Formal Methods and Tools](http://fmt.ewi.utwente.nl/) group at the University of Twente as part of the MaDriD project, which is funded by NWO,
+and the [Formal Methods and Verification](http://fmv.jku.at/) group at the Johannes Kepler University Linz as part of the RiSE project.
+Sylvan is licensed with the Apache 2.0 license.
 
-You can contact the main author of Sylvan at <t.vandijk@utwente.nl>. Please let us know if you use Sylvan in your projects.
+You can contact the main author of Sylvan at <tom@tvandijk.nl>.
+Please let us know if you use Sylvan in your projects.
 
-Sylvan is available at: https://github.com/utwente-fmt/sylvan  
-Java/JNI bindings: https://github.com/trolando/jsylvan  
-Haskell bindings: https://github.com/adamwalker/sylvan-haskell
+- Sylvan is available at: https://github.com/utwente-fmt/sylvan
+- Java/JNI bindings: https://github.com/utwente-fmt/jsylvan
+- Haskell bindings: https://github.com/adamwalker/sylvan-haskell
+- Python bindings: https://github.com/johnyf/dd
 
 Publications
 ------------
+T. van Dijk (2016) [Sylvan: Multi-core Decision Diagrams](http://dx.doi.org/10.3990/1.9789036541602). PhD Thesis.
+
 T. van Dijk and J. van de Pol (2015) [Sylvan: Multi-core Decision Diagrams](http://dx.doi.org/10.1007/978-3-662-46681-0_60). In: TACAS 2015, LNCS 9035. Springer.
 
 T. van Dijk and A.W. Laarman and J. van de Pol (2012) [Multi-Core BDD Operations for Symbolic Reachability](http://eprints.eemcs.utwente.nl/22166/). In: PDMC 2012, ENTCS. Elsevier.
 
 Usage
 -----
-Simple examples can be found in the `examples` subdirectory. The file `simple.cpp` contains a toy program that 
+Simple examples can be found in the `examples` subdirectory. The file `simple.cpp` contains a toy program that
 uses the C++ objects to perform basic BDD manipulation.
 The `mc.c` and `lddmc.c` programs are more advanced examples of symbolic model checking (with example models in the `models` subdirectory).
 
 Sylvan depends on the [work-stealing framework Lace](http://fmt.ewi.utwente.nl/tools/lace) for its implementation. Lace is embedded in the Sylvan distribution.
 To use Sylvan, Lace must be initialized first.
-For more details, see the comments in `src/sylvan.h`.
+See the example in `simple.cpp` and the comments in `src/sylvan.h`.
 
 ### Basic functionality
 
@@ -67,10 +76,10 @@ The following 'primitives' are implemented:
 
 See `src/sylvan_bdd.h`, `src/sylvan_mtbdd.h` and `src/sylvan_ldd.h` for other implemented operations.
 See `src/sylvan_obj.hpp` for the C++ interface.
- 
+
 ### Garbage collection
 
-Garbage collection is triggered when trying to insert a new node and no new bucket can be found within a reasonable upper bound. 
+Garbage collection is triggered when trying to insert a new node and no new bucket can be found within a reasonable upper bound.
 Garbage collection is stop-the-world and all workers must cooperate on garbage collection. (Beware of deadlocks if you use Sylvan operations in critical sections!)
 - `sylvan_gc()`: manually trigger garbage collection.
 - `sylvan_gc_enable()`: enable garbage collection.
@@ -95,3 +104,8 @@ Sylvan may require a larger than normal program stack. You may need to increase 
 
 ### I am getting the error "unable to allocate memory: ...!"
 Sylvan allocates virtual memory using mmap. If you specify a combined size for the cache and node table larger than your actual available memory you may need to set `vm.overcommit_memory` to `1`. E.g. `echo 1 > /proc/sys/vm/overcommit_memory`. You can make this setting permanent with `echo "vm.overcommit_memory = 1" > /etc/sysctl.d/99-sylvan.conf`. You can verify the setting with `cat /proc/sys/vm/overcommit_memory`. It should report `1`.
+
+### I get errors about `__lace_worker` and `__lace_dq_head`
+Many Sylvan operations are implemented as Lace tasks.
+To call a Lace task, the variables `__lace_worker` and `__lace_dq_head` must be initialized.
+Use the macro `LACE_ME` to do this.

@@ -138,7 +138,10 @@ MTBDD mtbdd_makeleaf(uint32_t type, uint64_t value);
  * Please note that this does NOT check variable ordering!
  */
 MTBDD _mtbdd_makenode(uint32_t var, MTBDD low, MTBDD high);
-#define mtbdd_makenode(var, low, high) (low == high ? low : _mtbdd_makenode(var, low, high))
+static inline MTBDD mtbdd_makenode(uint32_t var, MTBDD low, MTBDD high)
+{
+    return low == high ? low : _mtbdd_makenode(var, low, high);
+}
 
 /**
  * Returns 1 is the MTBDD is a terminal, or 0 otherwise.
@@ -218,14 +221,16 @@ TASK_DECL_2(double, mtbdd_satcount, MTBDD, size_t);
 #define mtbdd_satcount(dd, nvars) CALL(mtbdd_satcount, dd, nvars)
 
 /**
- * Count the number of MTBDD leaves (excluding mtbdd_false and mtbdd_true) in the MTBDD
+ * Count the number of MTBDD leaves (excluding mtbdd_false and mtbdd_true) in the given <count> MTBDDs
  */
-size_t mtbdd_leafcount(MTBDD mtbdd);
+size_t mtbdd_leafcount_more(const MTBDD *mtbdds, size_t count);
+#define mtbdd_leafcount(dd) mtbdd_leafcount_more(&dd, 1)
 
 /**
- * Count the number of MTBDD nodes and terminals (excluding mtbdd_false and mtbdd_true) in a MTBDD
+ * Count the number of MTBDD nodes and terminals (excluding mtbdd_false and mtbdd_true) in the given <count> MTBDDs
  */
-size_t mtbdd_nodecount(MTBDD mtbdd);
+size_t mtbdd_nodecount_more(const MTBDD *mtbdds, size_t count);
+#define mtbdd_nodecount(dd) mtbdd_nodecount_more(&dd, 1)
 
 /**
  * Callback function types for binary ("dyadic") and unary ("monadic") operations.
@@ -383,8 +388,15 @@ TASK_DECL_3(MTBDD, mtbdd_ite, MTBDD, MTBDD, MTBDD);
  * Multiply <a> and <b>, and abstract variables <vars> using summation.
  * This is similar to the "and_exists" operation in BDDs.
  */
-TASK_DECL_3(MTBDD, mtbdd_and_exists, MTBDD, MTBDD, MTBDD);
-#define mtbdd_and_exists(a, b, vars) CALL(mtbdd_and_exists, a, b, vars)
+TASK_DECL_3(MTBDD, mtbdd_and_abstract_plus, MTBDD, MTBDD, MTBDD);
+#define mtbdd_and_abstract_plus(a, b, vars) CALL(mtbdd_and_abstract_plus, a, b, vars)
+#define mtbdd_and_exists mtbdd_and_abstract_plus
+
+/**
+ * Multiply <a> and <b>, and abstract variables <vars> by taking the maximum.
+ */
+TASK_DECL_3(MTBDD, mtbdd_and_abstract_max, MTBDD, MTBDD, MTBDD);
+#define mtbdd_and_abstract_max(a, b, vars) CALL(mtbdd_and_abstract_max, a, b, vars)
 
 /**
  * Monad that converts double to a Boolean MTBDD, translate terminals >= value to 1 and to 0 otherwise;
@@ -589,17 +601,41 @@ VOID_TASK_DECL_4(mtbdd_visit_par, MTBDD, mtbdd_visit_pre_cb, mtbdd_visit_post_cb
 #define mtbdd_visit_par(...) CALL(mtbdd_visit_par, __VA_ARGS__)
 
 /**
- * Serialization routines
+ * Writing MTBDDs to file.
+ *
+ * Every node that is to be written is assigned a number, starting from 1,
+ * such that reading the result in the future can be done in one pass.
+ *
+ * We use a skiplist to store the assignment.
+ *
+ * The functions mtbdd_writer_tobinary and mtbdd_writer_totext can be used to
+ * store an array of MTBDDs to binary format or text format.
+ *
+ * One could also do the procedure manually instead.
+ * - call mtbdd_writer_start to allocate the skiplist.
+ * - call mtbdd_writer_add to add a given MTBDD to the skiplist
+ * - call mtbdd_writer_writebinary to write all added nodes to a file
+ * - OR:  mtbdd_writer_writetext to write all added nodes in text format
+ * - call mtbdd_writer_get to obtain the MTBDD identifier as stored in the skiplist
+ * - call mtbdd_writer_end to free the skiplist
+ */
+
+/**
+ * Write <count> decision diagrams given in <dds> in internal binary form to <file>.
+ * Does not yet support custom leaves.
  *
  * The internal binary format is as follows, to store <count> decision diagrams...
  * uint64_t: nodecount -- number of nodes
- * <nodecount> times
- *   uint128_t: each leaf/node
- * <count> times
- *   uint64_t: each stored decision diagram
- *
- * Every node in the decision diagram is stored a number from 1 to <nodecount>, such that
- * reading and loading the nodes can be done in one pass.
+ * <nodecount> times uint128_t: each leaf/node
+ * uint64_t: count -- number of stored decision diagrams
+ * <count> times uint64_t: each stored decision diagram
+ */
+VOID_TASK_DECL_3(mtbdd_writer_tobinary, FILE *, MTBDD *, int);
+#define mtbdd_writer_tobinary(file, dds, count) CALL(mtbdd_writer_tobinary, file, dds, count)
+
+/**
+ * Write <count> decision diagrams given in <dds> in ASCII form to <file>.
+ * Also supports custom leaves using the leaf_to_str callback.
  *
  * The text format writes in the same order as the binary format, except...
  * [
@@ -609,26 +645,79 @@ VOID_TASK_DECL_4(mtbdd_visit_par, MTBDD, mtbdd_visit_pre_cb, mtbdd_visit_post_cb
  * ],[dd1, dd2, dd3, ...,] -- and each the stored decision diagram.
  */
 
-/**
- * Write <count> decision diagrams given in <dds> in ASCII form to <file>.
- * Also supports custom leaves using the leaf_to_str callback.
- */
-VOID_TASK_DECL_3(mtbdd_serialize_totext, FILE *, MTBDD *, int);
-#define mtbdd_serialize_totext(file, dds, count) CALL(mtbdd_serialize_totext, file, dds, count)
+VOID_TASK_DECL_3(mtbdd_writer_totext, FILE *, MTBDD *, int);
+#define mtbdd_writer_totext(file, dds, count) CALL(mtbdd_writer_totext, file, dds, count)
 
 /**
- * Write <count> decision diagrams given in <dds> in internal binary form to <file>.
- * Does not yet support custom leaves.
+ * Skeleton typedef for the skiplist
  */
-VOID_TASK_DECL_3(mtbdd_serialize_tobinary, FILE *, MTBDD *, int);
-#define mtbdd_serialize_tobinary(file, dds, count) CALL(mtbdd_serialize_tobinary, file, dds, count)
+typedef struct sylvan_skiplist *sylvan_skiplist_t;
 
 /**
+ * Allocate a skiplist for writing an MTBDD.
+ */
+sylvan_skiplist_t mtbdd_writer_start();
+
+/**
+ * Add the given MTBDD to the skiplist.
+ */
+VOID_TASK_DECL_2(mtbdd_writer_add, sylvan_skiplist_t, MTBDD);
+#define mtbdd_writer_add(sl, dd) CALL(mtbdd_writer_add, sl, dd)
+
+/**
+ * Write all assigned MTBDD nodes in binary format to the file.
+ * Custom leaves are not yet supported.
+ */
+void mtbdd_writer_writebinary(FILE *out, sylvan_skiplist_t sl);
+
+/**
+ * Retrieve the identifier of the given stored MTBDD.
+ * This is useful if you want to be able to retrieve the stored MTBDD later.
+ */
+uint64_t mtbdd_writer_get(sylvan_skiplist_t sl, MTBDD dd);
+
+/**
+ * Free the allocated skiplist.
+ */
+void mtbdd_writer_end(sylvan_skiplist_t sl);
+
+/**
+ * Reading MTBDDs from file.
+ *
+ * The function mtbdd_reader_frombinary is basically the reverse of mtbdd_writer_tobinary.
+ *
+ * One can also perform the procedure manually.
+ * - call mtbdd_reader_readbinary to read the nodes from file
+ * - call mtbdd_reader_get to obtain the MTBDD for the given identifier as stored in the file.
+ * - call mtbdd_reader_end to free the array returned by mtbdd_reader_readbinary
+ */
+
+/*
  * Read <count> decision diagrams to <dds> from <file> in internal binary form.
  * Does not yet support custom leaves.
  */
-TASK_DECL_3(int, mtbdd_serialize_frombinary, FILE*, MTBDD*, int);
-#define mtbdd_serialize_frombinary(file, dds, count) CALL(mtbdd_serialize_frombinary, file, dds, count)
+TASK_DECL_3(int, mtbdd_reader_frombinary, FILE*, MTBDD*, int);
+#define mtbdd_reader_frombinary(file, dds, count) CALL(mtbdd_reader_frombinary, file, dds, count)
+
+/**
+ * Reading a file earlier written with mtbdd_writer_writebinary
+ * Returns an array with the conversion from stored identifier to MTBDD
+ * This array is allocated with malloc and must be freed afterwards.
+ * This method does not support custom leaves.
+ */
+
+TASK_DECL_1(uint64_t*, mtbdd_reader_readbinary, FILE*);
+#define mtbdd_reader_readbinary(file) CALL(mtbdd_reader_readbinary, file)
+
+/**
+ * Retrieve the MTBDD of the given stored identifier.
+ */
+MTBDD mtbdd_reader_get(uint64_t* arr, uint64_t identifier);
+
+/**
+ * Free the allocated translation array
+ */
+void mtbdd_reader_end(uint64_t *arr);
 
 /**
  * MTBDDSET
@@ -640,7 +729,7 @@ TASK_DECL_3(int, mtbdd_serialize_frombinary, FILE*, MTBDD*, int);
 #define mtbdd_set_add(set, var)             sylvan_and(set, sylvan_ithvar(var))
 #define mtbdd_set_addall(set, set2)         sylvan_and(set, set2)
 #define mtbdd_set_remove(set, var)          sylvan_exists(set, var)
-#define mtbdd_set_removeall(set, set2)      sylvan_exists(set, s2)
+#define mtbdd_set_removeall(set, set2)      sylvan_exists(set, set2)
 #define mtbdd_set_first(set)                sylvan_var(set)
 #define mtbdd_set_next(set)                 sylvan_high(set)
 #define mtbdd_set_fromarray(arr, count)     mtbdd_fromarray(arr, count)
