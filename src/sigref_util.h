@@ -20,9 +20,7 @@
 #ifndef SIGREF_UTIL_H
 #define SIGREF_UTIL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+namespace sigref {
 
 /**
  * Calculate A & B & C
@@ -48,8 +46,6 @@ TASK_DECL_3(double, big_satcount, MTBDD*, size_t, size_t);
 TASK_DECL_2(MTBDD, big_union, MTBDD*, size_t)
 #define big_union(sets, count) CALL(big_union, sets, count)
 
-#ifdef __cplusplus
-}
-#endif
+} // namespace sigref
 
 #endif

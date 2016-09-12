@@ -11,10 +11,9 @@
 #include <sylvan_gmp.h>
 #include <sigref.h>
 
-using namespace sylvan;
-
-
 namespace sigref {
+
+using namespace sylvan;
 
 /**
  * @brief Tests if an xml-node has a given attribute

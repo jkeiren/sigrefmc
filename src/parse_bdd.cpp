@@ -18,10 +18,9 @@
 #include <sigref.h>
 #include <parse_bdd.hpp>
 
-using namespace sylvan;
-
-
 namespace sigref {
+
+using namespace sylvan;
 
 BddLtsParser::BddLtsParser(const char* filename)
 {

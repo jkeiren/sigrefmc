@@ -31,6 +31,8 @@
 #include <sigref_util.h>
 #include <sylvan_gmp.h>
 
+namespace sigref {
+
 using namespace sylvan;
 
 
@@ -188,7 +190,7 @@ TASK_3(MTBDD, relprev, MTBDD, a, MTBDD, b, MTBDD, vars)
  * Implementation of strong IMC minimisation
  */
 
-VOID_TASK_IMPL_1(min_imc_strong, sigref::IMC&, imc)
+VOID_TASK_IMPL_1(min_imc_strong, IMC&, imc)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -412,7 +414,7 @@ VOID_TASK_IMPL_1(min_imc_strong, sigref::IMC&, imc)
  * Implementation of branching IMC minimisation
  */
 
-VOID_TASK_IMPL_1(min_imc_branching, sigref::IMC&, imc)
+VOID_TASK_IMPL_1(min_imc_branching, IMC&, imc)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -730,4 +732,6 @@ VOID_TASK_IMPL_1(min_imc_branching, sigref::IMC&, imc)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+}
+
 }

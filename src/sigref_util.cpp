@@ -18,6 +18,7 @@
 #include <sigref_util.h>
 #include <sylvan_int.h>
 
+namespace sigref {
 
 TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
 {
@@ -113,4 +114,6 @@ TASK_IMPL_2(MTBDD, big_union, MTBDD*, sets, size_t, count)
     MTBDD result = mtbdd_plus(left, right);
     mtbdd_refs_pop(2);
     return result;
+}
+
 }

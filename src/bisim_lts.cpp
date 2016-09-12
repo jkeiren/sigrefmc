@@ -29,8 +29,9 @@
 #include <sigref.h>
 #include <sigref_util.h>
 
-using namespace sylvan;
+namespace sigref {
 
+using namespace sylvan;
 
 /**
  * Extend a transition relation to a larger domain (using s=s')
@@ -105,7 +106,7 @@ TASK_4(BDD, par_relprev, BDD, dd, BDD*, relations, int, count, BDD, st_variables
  * Implementation of strong LTS minimisation
  */
 
-VOID_TASK_IMPL_1(min_lts_strong, sigref::LTS&, lts)
+VOID_TASK_IMPL_1(min_lts_strong, LTS&, lts)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -255,7 +256,7 @@ VOID_TASK_IMPL_1(min_lts_strong, sigref::LTS&, lts)
  * Implementation of branching LTS minimisation
  */
 
-VOID_TASK_IMPL_1(min_lts_branching, sigref::LTS&, lts)
+VOID_TASK_IMPL_1(min_lts_branching, LTS&, lts)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -520,4 +521,6 @@ VOID_TASK_IMPL_1(min_lts_branching, sigref::LTS&, lts)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+}
+
 }

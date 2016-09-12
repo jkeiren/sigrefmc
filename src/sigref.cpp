@@ -30,6 +30,9 @@
 #include <sigref.h>
 #include <sylvan_gmp.h>
 
+using namespace sylvan;
+using namespace sigref;
+
 /* Configuration */
 static char* model_filename = NULL;
 #ifdef HAVE_PROFILER
@@ -170,26 +173,26 @@ VOID_TASK_1(main_lace, void*, arg)
 
     /* Initialization done, now read model from file */
 
-    sigref::SystemType sysType;
-    sigref::LTS lts;
-    sigref::CTMC ctmc;
-    sigref::IMC imc;
+    SystemType sysType;
+    LTS lts;
+    CTMC ctmc;
+    IMC imc;
 
     const char *dot = strrchr(model_filename, '.');
     if (dot) {
         if (strcmp(dot+1, "bdd") == 0) {
-            sigref::BddLtsParser parser(model_filename);
-            sysType = sigref::lts_type;
+            BddLtsParser parser(model_filename);
+            sysType = lts_type;
             lts = *parser.getLTS();
         } else if ((strcmp(dot+1, "xlts") == 0) || (strcmp(dot+1, "xctmc") == 0) || (strcmp(dot+1, "ximc") == 0) || (strcmp(dot+1, "xml") == 0)) {
-            sigref::LeafType lt = sigref::float_type;
-            if (leaftype == 1) lt = sigref::simple_fraction_type;
-            if (leaftype == 2) lt = sigref::mpq_type;
-            sigref::SystemParser reader(model_filename, 0, lt);
+            LeafType lt = float_type;
+            if (leaftype == 1) lt = simple_fraction_type;
+            if (leaftype == 2) lt = mpq_type;
+            SystemParser reader(model_filename, 0, lt);
             sysType = reader.getType();
-            if (sysType == sigref::lts_type) {
+            if (sysType == lts_type) {
                 lts = *reader.getLTS();
-            } else if (sysType == sigref::ctmc_type) {
+            } else if (sysType == ctmc_type) {
                 ctmc = *reader.getCTMC();
             } else {
                 imc = *reader.getIMC();
@@ -209,11 +212,11 @@ VOID_TASK_1(main_lace, void*, arg)
     if (profile_filename != NULL) ProfilerStart(profile_filename);
 #endif
 
-    if (sysType == sigref::lts_type && bisimulation == 1) CALL(min_lts_branching, lts);
-    else if (sysType == sigref::lts_type && bisimulation == 2) CALL(min_lts_strong, lts);
-    else if (sysType == sigref::ctmc_type) CALL(min_ctmc, ctmc);
-    else if (sysType == sigref::imc_type && bisimulation == 1) CALL(min_imc_branching, imc);
-    else if (sysType == sigref::imc_type && bisimulation == 2) CALL(min_imc_strong, imc);
+    if (sysType == lts_type && bisimulation == 1) CALL(min_lts_branching, lts);
+    else if (sysType == lts_type && bisimulation == 2) CALL(min_lts_strong, lts);
+    else if (sysType == ctmc_type) CALL(min_ctmc, ctmc);
+    else if (sysType == imc_type && bisimulation == 1) CALL(min_imc_branching, imc);
+    else if (sysType == imc_type && bisimulation == 2) CALL(min_imc_strong, imc);
     else fprintf(stderr, "Unsupported system type!\n");
 
 #ifdef HAVE_PROFILER
