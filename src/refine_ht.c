@@ -312,3 +312,17 @@ get_signature(size_t index)
     if (result == (uint64_t)-1) return sylvan_false;
     else return result;
 }
+
+void
+free_refine_data()
+{
+    if (signatures != NULL) {
+        munmap(signatures, sizeof(BDD)*signatures_size);
+        signatures = NULL;
+    }
+
+    if (table != NULL) {
+        munmap(table, 3*8*table_size);
+        table = NULL;
+    }
+}

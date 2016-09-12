@@ -251,3 +251,12 @@ get_signature(size_t index)
     if (result == (uint64_t)-1) return sylvan_false;
     else return result;
 }
+
+void
+free_refine_data()
+{
+    if (signatures != NULL) {
+        munmap(signatures, sizeof(signature_elem)*signatures_size);
+        signatures = NULL;
+    }
+}

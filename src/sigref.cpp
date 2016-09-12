@@ -29,6 +29,7 @@
 #include <parse_xml.hpp>
 #include <sigref.h>
 #include <sylvan_gmp.h>
+#include <refine.h>
 
 using namespace sylvan;
 using namespace sigref;
@@ -223,6 +224,10 @@ VOID_TASK_1(main_lace, void*, arg)
 #ifdef HAVE_PROFILER
     if (profile_filename != NULL) ProfilerStop();
 #endif
+
+    /* At this point, the signatures are not protected against garbage collection.
+       We might as well free the memory. */
+    free_refine_data();
 
     (void)arg;
 }
