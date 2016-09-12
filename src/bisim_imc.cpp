@@ -35,7 +35,6 @@ namespace sigref {
 
 using namespace sylvan;
 
-
 /**
  * Compute equivalent of functions a and b
  * f(x) = a(x) if b(x) == F (not defined in b)
@@ -190,7 +189,7 @@ TASK_3(MTBDD, relprev, MTBDD, a, MTBDD, b, MTBDD, vars)
  * Implementation of strong IMC minimisation
  */
 
-VOID_TASK_IMPL_1(min_imc_strong, IMC&, imc)
+TASK_IMPL_1(BDD, min_imc_strong, IMC&, imc)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -407,6 +406,16 @@ VOID_TASK_IMPL_1(min_imc_strong, IMC&, imc)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+
+    mtbdd_unprotect(&markov_relation); // markov_relation object might be changed
+    sylvan_deref(st_variables);
+    sylvan_deref(sta_variables);
+    sylvan_deref(ta_variables);
+    sylvan_unprotect(&partition);
+    sylvan_unprotect(&tau_transitions);
+    sylvan_unprotect(&tau_states);
+
+    return partition;
 }
 
 
@@ -414,7 +423,7 @@ VOID_TASK_IMPL_1(min_imc_strong, IMC&, imc)
  * Implementation of branching IMC minimisation
  */
 
-VOID_TASK_IMPL_1(min_imc_branching, IMC&, imc)
+TASK_IMPL_1(BDD, min_imc_branching, IMC&, imc)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -732,6 +741,16 @@ VOID_TASK_IMPL_1(min_imc_branching, IMC&, imc)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+
+    mtbdd_unprotect(&markov_relation); // markov_relation object might be changed
+    sylvan_deref(st_variables);
+    sylvan_deref(sta_variables);
+    sylvan_deref(ta_variables);
+    sylvan_unprotect(&partition);
+    sylvan_unprotect(&tau_transitions);
+    sylvan_unprotect(&tau_states);
+
+    return partition;
 }
 
 }

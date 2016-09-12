@@ -106,7 +106,7 @@ TASK_4(BDD, par_relprev, BDD, dd, BDD*, relations, int, count, BDD, st_variables
  * Implementation of strong LTS minimisation
  */
 
-VOID_TASK_IMPL_1(min_lts_strong, LTS&, lts)
+TASK_IMPL_1(BDD, min_lts_strong, LTS&, lts)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -249,6 +249,14 @@ VOID_TASK_IMPL_1(min_lts_strong, LTS&, lts)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+
+    sylvan_deref(st_variables);
+    for (int i=0; i<n_relations; i++) {
+        sylvan_unprotect(transition_relations+i);
+    }
+    sylvan_unprotect(&partition);
+
+    return partition;
 }
 
 
@@ -256,7 +264,7 @@ VOID_TASK_IMPL_1(min_lts_strong, LTS&, lts)
  * Implementation of branching LTS minimisation
  */
 
-VOID_TASK_IMPL_1(min_lts_branching, LTS&, lts)
+TASK_IMPL_1(BDD, min_lts_branching, LTS&, lts)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -521,6 +529,15 @@ VOID_TASK_IMPL_1(min_lts_branching, LTS&, lts)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+
+    sylvan_deref(st_variables);
+    for (int i=0; i<n_relations; i++) {
+        sylvan_unprotect(transition_relations+i);
+        sylvan_unprotect(tau_transitions+i);
+    }
+    sylvan_unprotect(&partition);
+
+    return partition;
 }
 
 }

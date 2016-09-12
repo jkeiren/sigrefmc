@@ -37,7 +37,7 @@ using namespace sylvan;
 /**
  * Implementation of CTMC minimisation
  */
-VOID_TASK_IMPL_1(min_ctmc, CTMC&, ctmc)
+TASK_IMPL_1(BDD, min_ctmc, CTMC&, ctmc)
 {
     /* Gather data, prepare block variables and signatures array */
 
@@ -163,6 +163,9 @@ VOID_TASK_IMPL_1(min_ctmc, CTMC&, ctmc)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+
+    sylvan_unprotect(&partition);
+    return partition;
 }
 
 }

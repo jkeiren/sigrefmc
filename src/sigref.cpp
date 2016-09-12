@@ -212,11 +212,12 @@ VOID_TASK_1(main_lace, void*, arg)
     if (profile_filename != NULL) ProfilerStart(profile_filename);
 #endif
 
-    if (sysType == lts_type && bisimulation == 1) CALL(min_lts_branching, lts);
-    else if (sysType == lts_type && bisimulation == 2) CALL(min_lts_strong, lts);
-    else if (sysType == ctmc_type) CALL(min_ctmc, ctmc);
-    else if (sysType == imc_type && bisimulation == 1) CALL(min_imc_branching, imc);
-    else if (sysType == imc_type && bisimulation == 2) CALL(min_imc_strong, imc);
+    Bdd partition;
+    if (sysType == lts_type && bisimulation == 1) partition = CALL(min_lts_branching, lts);
+    else if (sysType == lts_type && bisimulation == 2) partition = CALL(min_lts_strong, lts);
+    else if (sysType == ctmc_type) partition = CALL(min_ctmc, ctmc);
+    else if (sysType == imc_type && bisimulation == 1) partition = CALL(min_imc_branching, imc);
+    else if (sysType == imc_type && bisimulation == 2) partition = CALL(min_imc_strong, imc);
     else fprintf(stderr, "Unsupported system type!\n");
 
 #ifdef HAVE_PROFILER
