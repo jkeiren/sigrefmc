@@ -223,6 +223,8 @@ VOID_TASK_1(main_lace, void*, arg)
        We might as well free the memory. */
     free_refine_data();
 
+    sylvan_stats_report(stdout);
+
     (void)arg;
 }
 
