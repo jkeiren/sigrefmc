@@ -27,7 +27,6 @@
 /* Configuration */
 extern int bisimulation; // branching
 extern int leaftype; // 0 = float, 1 = fraction, 2 = gmp
-extern int quotient; // representative
 extern int verbosity; // default: no excessive node counting
 extern int merge_relations; // merge relations to 1 relation
 extern int closure; // 0 = fixpoint, 1 = squaring, 2 = recursive

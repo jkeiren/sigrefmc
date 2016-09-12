@@ -42,8 +42,7 @@ static char* profile_filename = NULL;
 static int workers = 0; // autodetect
 
 int bisimulation = 1; // branching
-int leaftype = 0; // 0 = float, 1 = fraction, 2 = gmp
-int quotient = 1; // representative
+int leaftype = 2; // 0 = float, 1 = fraction, 2 = gmp
 int verbosity = 0; // default: no excessive node counting
 int merge_relations = 0; // merge relations to 1 relation
 int closure = 0; // 0 = fixpoint, 1 = squaring, 2 = recursive
@@ -57,7 +56,6 @@ static struct argp_option options[] =
     {"bisi", 'b', "<bisimulation>", 0, "Bisimulation (branching=1, strong=2)", 0},
     {"leaf", 'l', "<leaf type>", 0, "Leaf type (\"floating point\" (default), \"fraction\", \"gmp\")", 0},
     {"verbosity", 'v', "<verbosity>", 0, "Verbosity (default=0, more=1, too much=2)", 0},
-    {"quotient", 'q', "<algorithm>", 0, "Quotient algorithm (representative=1, block numbers=2)", 0},
     {"merge-relations", 'm', 0, 0, "Merge transition relations into one transition relation", 0},
     {"closure", 'c', "<closure>", 0, "Closure algorithm (\"fixpoint\", \"squaring\" or \"recursive\")", 0},
     {"reachable", 'r', 0, 0, "Limit partition to reachable states", 0},
@@ -89,10 +87,6 @@ parse_opt(int key, char *arg, struct argp_state *state)
         } else {
             argp_usage(state);
         }
-        break;
-    case 'q':
-        quotient = atoi(arg);
-        if (quotient<1 || quotient>2) argp_usage(state);
         break;
     case 'v':
         verbosity = atoi(arg);
