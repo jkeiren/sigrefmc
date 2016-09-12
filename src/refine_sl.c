@@ -21,7 +21,6 @@
 #include <sylvan_int.h>
 
 #include <sigref.h>
-#include <sigref_util.h>
 #include <blocks.h>
 #include <refine.h>
 
@@ -125,7 +124,7 @@ TASK_2(BDD, assign_block, BDD, sig, BDD, previous_block)
     signatures[loc].next[0] = b_nr;
 
     /* determine height */
-    uint64_t h = 1 + __builtin_clz(trng()) / 2;
+    uint64_t h = 1 + __builtin_clz(LACE_TRNG) / 2;
     if (h > SL_DEPTH) h = SL_DEPTH;
 
     /* go up and create links */

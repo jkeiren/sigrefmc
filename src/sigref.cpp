@@ -28,7 +28,6 @@
 #include <parse_bdd.hpp>
 #include <parse_xml.hpp>
 #include <sigref.h>
-#include <sigref_util.h>
 #include <sylvan_gmp.h>
 
 /* Configuration */
@@ -166,8 +165,6 @@ VOID_TASK_1(main_lace, void*, arg)
     gmp_init();
     sylvan_gc_hook_pregc(TASK(gc_start));
     sylvan_gc_hook_postgc(TASK(gc_end));
-
-    CALL(init_trng);
 
     t_start = wctime();
 

@@ -18,27 +18,6 @@
 #include <sigref_util.h>
 #include <sylvan_int.h>
 
-/* Calculate random height */
-DECLARE_THREAD_LOCAL(thread_rng, uint64_t);
-
-uint64_t trng()
-{
-    LOCALIZE_THREAD_LOCAL(thread_rng, uint64_t);
-    thread_rng = 2862933555777941757ULL * thread_rng + 3037000493ULL;
-    SET_THREAD_LOCAL(thread_rng, thread_rng);
-    return thread_rng;
-}
-
-VOID_TASK_0(init_trng_par)
-{
-    SET_THREAD_LOCAL(thread_rng, (((uint64_t)rand()) << 32 | rand()));
-}
-
-VOID_TASK_IMPL_0(init_trng)
-{
-    INIT_THREAD_LOCAL(thread_rng);
-    TOGETHER(init_trng_par);
-}
 
 TASK_IMPL_3(BDD, three_and, BDD, a, BDD, b, BDD, c)
 {

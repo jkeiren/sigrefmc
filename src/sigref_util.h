@@ -24,10 +24,6 @@
 extern "C" {
 #endif /* __cplusplus */
 
-/* Calculate random number */
-uint64_t trng();
-VOID_TASK_DECL_0(init_trng);
-
 /**
  * Calculate A & B & C
  */

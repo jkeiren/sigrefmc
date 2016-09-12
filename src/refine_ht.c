@@ -21,7 +21,6 @@
 #include <sylvan_int.h>
 
 #include <sigref.h>
-#include <sigref_util.h>
 #include <blocks.h>
 #include <refine.h>
 
