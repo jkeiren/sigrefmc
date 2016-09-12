@@ -17,6 +17,7 @@
 #include <sigref.h>
 #include <sigref_util.h>
 #include <sylvan_int.h>
+#include <refine.h>
 
 namespace sigref {
 
@@ -114,6 +115,14 @@ TASK_IMPL_2(MTBDD, big_union, MTBDD*, sets, size_t, count)
     MTBDD result = mtbdd_plus(left, right);
     mtbdd_refs_pop(2);
     return result;
+}
+
+TASK_IMPL_3(double, count_transitions, size_t, first, size_t, count, size_t, nvars)
+{
+    if (count == 1) return mtbdd_satcount(get_signature(first), nvars);
+    SPAWN(count_transitions, first, count/2, nvars);
+    double result = CALL(count_transitions, first+count/2, count-count/2, nvars);
+    return result + SYNC(count_transitions);
 }
 
 }

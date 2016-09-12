@@ -29,6 +29,7 @@ TASK_DECL_3(BDD, refine, MTBDD, BDD, BDD);
 size_t count_blocks();
 void set_signatures_size(size_t count);
 size_t get_next_block();
+BDD get_signature(size_t index);
 
 #ifdef __cplusplus
 }

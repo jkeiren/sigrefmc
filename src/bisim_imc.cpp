@@ -245,19 +245,22 @@ TASK_IMPL_1(BDD, min_imc_strong, IMC&, imc)
     size_t n_blocks = count_blocks();
 
     /* Write some information */
+
+    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
+    double markov_transitions_before = mtbdd_satcount(markov_relation, state_length*2);
+    double action_transitions_before = mtbdd_satcount(action_relation, state_length*2 + action_length);
+
     INFO("Number of state variables: %d.", state_length);
     INFO("Number of action variables: %d.", action_length);
     INFO("Number of block variables: %d.", block_length);
-
-    INFO("Number of Markovian transitions: %'0.0f", mtbdd_satcount(markov_relation, state_length*2));
-    INFO("Number of interactive transitions: %'0.0f", sylvan_satcount(action_relation, sta_variables));
+    INFO("Number of Markovian transitions: %'0.0f", markov_transitions_before);
+    INFO("Number of interactive transitions: %'0.0f", action_transitions_before);
 
     if (verbosity >= 2) {
         INFO("Markovian transition relation: %'zu MTBDD nodes.", mtbdd_nodecount(markov_relation));
         INFO("Interactive transition relation: %'zu BDD nodes.", mtbdd_nodecount(action_relation));
     }
 
-    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
     INFO("Initial partition: %'0.0f states in %zu block(s).", n_states, n_blocks);
 
     if (verbosity >= 2) {
@@ -480,19 +483,21 @@ TASK_IMPL_1(BDD, min_imc_branching, IMC&, imc)
 
     /* Write some information */
  
+    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
+    double markov_transitions_before = mtbdd_satcount(markov_relation, state_length*2);
+    double action_transitions_before = mtbdd_satcount(action_relation, state_length*2 + action_length);
+
     INFO("Number of state variables: %d.", state_length);
     INFO("Number of action variables: %d.", action_length);
     INFO("Number of block variables: %d.", block_length);
-
-    INFO("Number of Markovian transitions: %'0.0f", mtbdd_satcount(markov_relation, state_length*2));
-    INFO("Number of interactive transitions: %'0.0f", sylvan_satcount(action_relation, sta_variables));
+    INFO("Number of Markovian transitions: %'0.0f", markov_transitions_before);
+    INFO("Number of interactive transitions: %'0.0f", action_transitions_before);
 
     if (verbosity >= 2) {
         INFO("Markovian transition relation: %'zu MTBDD nodes.", mtbdd_nodecount(markov_relation));
         INFO("Interactive transition relation: %'zu BDD nodes.", mtbdd_nodecount(action_relation));
     }
 
-    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
     INFO("Initial partition: %'0.0f states in %zu block(s).", n_states, n_blocks);
 
     if (verbosity >= 2) {

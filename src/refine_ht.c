@@ -304,3 +304,11 @@ get_next_block()
 {
     return next_block++;
 }
+
+BDD
+get_signature(size_t index)
+{
+    BDD result = signatures[index+1];
+    if (result == (uint64_t)-1) return sylvan_false;
+    else return result;
+}

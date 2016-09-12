@@ -80,16 +80,17 @@ TASK_IMPL_1(BDD, min_ctmc, CTMC&, ctmc)
 
     /* Write some information */
 
+    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
+    double transitions_before = mtbdd_satcount(transition_relation, state_length*2);
+
     INFO("Number of state variables: %d.", state_length);
     INFO("Number of block variables: %d.", block_length);
-
-    INFO("Number of Markovian transitions: %'0.0f", mtbdd_satcount(transition_relation, state_length*2));
+    INFO("Number of Markovian transitions: %'0.0f", transitions_before);
 
     if (verbosity >= 2) {
         INFO("Transition relation: %'zu MTBDD nodes.", mtbdd_nodecount(transition_relation));
     }
 
-    double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
     INFO("Initial partition: %'0.0f states in %zu block(s).", n_states, n_blocks);
 
     if (verbosity >= 2) {
@@ -156,6 +157,9 @@ TASK_IMPL_1(BDD, min_ctmc, CTMC&, ctmc)
 
     double t2 = wctime();
 
+    // compute number of transitions
+    double transitions_after = count_transitions(0, n_blocks, block_length);
+
     INFO("");
     INFO("Time for computing the bisimulation relation: %'0.2f sec.", t2-t1);
     INFO("Time needed for signature computation: %'0.2f sec.", t_sig);
@@ -163,6 +167,8 @@ TASK_IMPL_1(BDD, min_ctmc, CTMC&, ctmc)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
+    INFO("Number of transitions before bisimulation minimisation: %'0.0f.", transitions_before);
+    INFO("Number of transitions after bisimulation minimisation: %'0.0f.", transitions_after);
 
     sylvan_unprotect(&partition);
     return partition;

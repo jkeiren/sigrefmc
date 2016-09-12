@@ -46,6 +46,12 @@ TASK_DECL_3(double, big_satcount, MTBDD*, size_t, size_t);
 TASK_DECL_2(MTBDD, big_union, MTBDD*, size_t)
 #define big_union(sets, count) CALL(big_union, sets, count)
 
+/**
+ * Count number of transitions using the signatures
+ */
+TASK_DECL_3(double, count_transitions, size_t, size_t, size_t);
+#define count_transitions(first, count, nvars) CALL(count_transitions, first, count, nvars)
+
 } // namespace sigref
 
 #endif
