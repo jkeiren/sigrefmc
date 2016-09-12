@@ -25,6 +25,10 @@
 #define CACHE_EQUI              (260LL<<42)
 #define CACHE_ENCODE_BLOCK      (261LL<<42)
 #define CACHE_DECODE_BLOCK      (262LL<<42)
+#define CACHE_MARKOV_QUOTIENT   (263LL<<42)
+#define CACHE_TRANS_QUOTIENT    (264LL<<42)
+#define CACHE_STATES_QUOTIENT   (265LL<<42)
+#define CACHE_PARTITION_ENUM    (266LL<<42)
 
 /* Configuration */
 extern int bisimulation; // branching

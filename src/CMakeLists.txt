@@ -24,6 +24,10 @@ set(SOURCES
     sigref.cpp
     sigref_util.hpp
     sigref_util.cpp
+    quotient.hpp
+    quotient.cpp
+    writer.hpp
+    writer.cpp
     )
 
 add_executable(sigrefmc ${SOURCES} refine_sl.c)
