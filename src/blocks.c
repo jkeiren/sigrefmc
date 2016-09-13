@@ -17,6 +17,7 @@
 #include <sigref.h>
 #include <blocks.h>
 
+uint32_t block_base = 2000000; // base for block variables
 int block_length; // number of block variables
 BDD block_variables;
 
@@ -24,7 +25,7 @@ VOID_TASK_IMPL_1(prepare_blocks, int, nvars)
 {
     block_length = nvars < 25 ? nvars : 25; // Cap it on 2^25 : 33,554,432 blocks max
     uint32_t block_vars[block_length];
-    for (int i=0; i<block_length; i++) block_vars[i] = 2000000+2*i;
+    for (int i=0; i<block_length; i++) block_vars[i] = block_base+2*i;
     block_variables = sylvan_set_fromarray(block_vars, block_length);
     sylvan_ref(block_variables);
 }
