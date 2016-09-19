@@ -34,6 +34,7 @@ extern int merge_relations; // merge relations to 1 relation
 extern int closure; // 0 = fixpoint, 1 = squaring, 2 = recursive
 extern int reachable; // 0 = no, 1 = yes
 extern int tau_action; // action label of tau
+extern int ordering; // 0 = s,t < a < B, 1 = s,t < B < a, default: 0
 
 /* Obtain current wallclock time */
 extern double t_start;
