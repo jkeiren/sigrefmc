@@ -33,41 +33,6 @@ namespace sigref {
 
 using namespace sylvan;
 
-/**
- * Extend a transition relation to a larger domain (using s=s')
- */
-#define extend_relation(rel, vars, numS) CALL(extend_relation, rel, vars, numS)
-TASK_3(BDD, extend_relation, BDD, relation, BDD, variables, int, state_length)
-{
-    /* first determine which state BDD variables are in rel */
-    int has[state_length];
-    for (int i=0; i<state_length; i++) has[i] = 0;
-    BDDSET s = variables;
-    while (s != sylvan_true) {
-        BDDVAR v = sylvan_var(s);
-        if (v/2 >= (unsigned)state_length) break; // action labels
-        has[v/2] = 1;
-        s = sylvan_high(s);
-    }
-
-    /* create "s=s'" for all variables not in rel */
-    BDD eq = sylvan_true;
-    for (int i=state_length-1; i>=0; i--) {
-        if (has[i]) continue;
-        BDD low = sylvan_makenode(2*i+1, eq, sylvan_false);
-        bdd_refs_push(low);
-        BDD high = sylvan_makenode(2*i+1, sylvan_false, eq);
-        bdd_refs_pop(1);
-        eq = sylvan_makenode(2*i, low, high);
-    }
-
-    bdd_refs_push(eq);
-    BDD result = sylvan_and(relation, eq);
-    bdd_refs_pop(1);
-
-    return result;
-}
-
 
 #define sig_strong(relations, count, partition, prime_variables) CALL(sig_strong, relations, count, partition, prime_variables)
 TASK_4(BDD, sig_strong, BDD *, relations, int, count, BDD, partition, BDD, prime_variables)

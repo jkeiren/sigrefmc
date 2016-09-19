@@ -52,6 +52,13 @@ TASK_DECL_2(MTBDD, big_union, MTBDD*, size_t)
 TASK_DECL_3(double, count_transitions, size_t, size_t, size_t);
 #define count_transitions(first, count, nvars) CALL(count_transitions, first, count, nvars)
 
+/**
+ * Extend a relation <rel> defined on variables <vars> to the full domain,
+ * which has <state_length> state variables (and <state_length> prime variables)
+ */
+TASK_DECL_3(BDD, extend_relation, BDD, BDD, int);
+#define extend_relation(rel, vars, state_length) CALL(extend_relation, rel, vars, state_length)
+
 } // namespace sigref
 
 #endif
