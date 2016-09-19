@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <sylvan_int.h>
 #include <sigref.h>
 #include <blocks.h>
 
@@ -32,18 +33,26 @@ VOID_TASK_IMPL_1(prepare_blocks, int, nvars)
 
 TASK_IMPL_1(BDD, encode_block, uint64_t, b)
 {
+    BDD result;
+    if (cache_get3(CACHE_ENCODE_BLOCK, 0, b, 0, &result)) return result;
+
     // for now, assume max 64 bits for a block....
     uint8_t bl[block_length];
     for (int i=0; i<block_length; i++) {
         bl[i] = b & 1 ? 1 : 0;
         b>>=1;
     }
-    return sylvan_cube(block_variables, bl);
+
+    result = sylvan_cube(block_variables, bl);
+    cache_put3(CACHE_ENCODE_BLOCK, 0, b, 0, result);
+    return result;
 }
 
 TASK_IMPL_1(uint64_t, decode_block, BDD, block)
 {
     uint64_t result = 0;
+    if (cache_get3(CACHE_DECODE_BLOCK, block, 0, 0, &result)) return result;
+
     uint64_t mask = 1;
     while (block != sylvan_true) {
         BDD b_low = sylvan_low(block);
@@ -55,5 +64,7 @@ TASK_IMPL_1(uint64_t, decode_block, BDD, block)
         }
         mask <<= 1;
     }
+
+    cache_put3(CACHE_DECODE_BLOCK, block, 0, 0, result);
     return result;
 }
