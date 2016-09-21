@@ -15,7 +15,7 @@
  */
 
 #include <sigref.h>
-#include <sigref_util.h>
+#include <sigref_util.hpp>
 #include <sylvan_int.h>
 #include <refine.h>
 

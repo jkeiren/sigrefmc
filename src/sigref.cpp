@@ -24,7 +24,7 @@
 #include <gperftools/profiler.h>
 #endif
 
-#include <bisimulation.h>
+#include <bisimulation.hpp>
 #include <parse_bdd.hpp>
 #include <parse_xml.hpp>
 #include <sigref.h>

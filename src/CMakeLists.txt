@@ -4,7 +4,7 @@ project(sigref C CXX)
 include_directories(.)
 
 set(SOURCES
-    bisimulation.h
+    bisimulation.hpp
     bisim_ctmc.cpp
     bisim_lts.cpp
     bisim_imc.cpp
@@ -22,7 +22,7 @@ set(SOURCES
     systems.hpp
     sigref.h
     sigref.cpp
-    sigref_util.h
+    sigref_util.hpp
     sigref_util.cpp
     )
 

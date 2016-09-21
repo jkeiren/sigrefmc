@@ -22,12 +22,12 @@
 #include <sylvan_int.h>
 #include <sylvan_obj.hpp>
 
-#include <bisimulation.h>
+#include <bisimulation.hpp>
 #include <blocks.h>
 #include <getrss.h>
 #include <refine.h>
 #include <sigref.h>
-#include <sigref_util.h>
+#include <sigref_util.hpp>
 #include <sylvan_gmp.h>
 
 namespace sigref {
