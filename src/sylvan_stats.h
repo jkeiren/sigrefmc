@@ -67,6 +67,7 @@ typedef enum {
     OPCOUNTER(MTBDD_COMPOSE),
     OPCOUNTER(MTBDD_MINIMUM),
     OPCOUNTER(MTBDD_MAXIMUM),
+    OPCOUNTER(MTBDD_EVAL_COMPOSE),
 
     /* LDD operations */
     OPCOUNTER(LDD_UNION),
@@ -136,7 +137,7 @@ void sylvan_stats_report(FILE* target);
 #else
 #include <time.h>
 static uint64_t
-getabstime()
+getabstime(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

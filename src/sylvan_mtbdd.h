@@ -124,7 +124,7 @@ typedef MTBDD MTBDDMAP;
  * This initializes internal and external referencing datastructures,
  * and registers them in the garbage collection framework.
  */
-void sylvan_init_mtbdd();
+void sylvan_init_mtbdd(void);
 
 /**
  * Create a MTBDD terminal of type <type> and value <value>.
@@ -230,7 +230,11 @@ size_t mtbdd_leafcount_more(const MTBDD *mtbdds, size_t count);
  * Count the number of MTBDD nodes and terminals (excluding mtbdd_false and mtbdd_true) in the given <count> MTBDDs
  */
 size_t mtbdd_nodecount_more(const MTBDD *mtbdds, size_t count);
-#define mtbdd_nodecount(dd) mtbdd_nodecount_more(&dd, 1)
+
+static inline size_t
+mtbdd_nodecount(const MTBDD dd) {
+    return mtbdd_nodecount_more(&dd, 1);
+}
 
 /**
  * Callback function types for binary ("dyadic") and unary ("monadic") operations.
@@ -511,8 +515,59 @@ typedef int (*mtbdd_enum_filter_cb)(MTBDD);
 MTBDD mtbdd_enum_first(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb);
 MTBDD mtbdd_enum_next(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb);
 
+/**
+ * Given an MTBDD <dd> and a cube of variables <variables> expected in <dd>,
+ * mtbdd_enum_all_first and mtbdd_enum_all_next enumerate all satisfying assignments in <dd> that lead
+ * to a non-False leaf.
+ *
+ * The functions return the leaf (or mtbdd_false if no new satisfying assignment is found) and encodes
+ * the assignment in the supplied array <arr>, 0 for False and 1 for True.
+ *
+ * The supplied array <arr> must be large enough for all variables in <variables>.
+ *
+ * Usage:
+ * MTBDD leaf = mtbdd_enum_first(dd, variables, arr, NULL);
+ * while (leaf != mtbdd_false) {
+ *     .... // do something with arr/leaf
+ *     leaf = mtbdd_enum_next(dd, variables, arr, NULL);
+ * }
+ *
+ * The callback is an optional function that returns 0 when the given terminal node should be skipped.
+ */
 MTBDD mtbdd_enum_all_first(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb);
 MTBDD mtbdd_enum_all_next(MTBDD dd, MTBDD variables, uint8_t *arr, mtbdd_enum_filter_cb filter_cb);
+
+/**
+ * Given a MTBDD <dd>, call <cb> with context <context> for every unique path in <dd> ending in leaf <leaf>.
+ *
+ * Usage:
+ * VOID_TASK_3(cb, mtbdd_enum_trace_t, trace, MTBDD, leaf, void*, context) { ... do something ... }
+ * mtbdd_enum_par(dd, cb, context);
+ */
+typedef struct mtbdd_enum_trace {
+    struct mtbdd_enum_trace *prev;
+    uint32_t var;
+    int val;  // 0 or 1
+} * mtbdd_enum_trace_t;
+
+LACE_TYPEDEF_CB(void, mtbdd_enum_cb, mtbdd_enum_trace_t, MTBDD, void*)
+VOID_TASK_DECL_3(mtbdd_enum_par, MTBDD, mtbdd_enum_cb, void*);
+#define mtbdd_enum_par(dd, cb, context) CALL(mtbdd_enum_par, dd, cb, context)
+
+/**
+ * Function composition after partial evaluation.
+ *
+ * Given a function F(X) = f, compute the composition F'(X) = g(f) for every assignment to X.
+ * All variables X in <vars> must appear before all variables in f and g(f).
+ *
+ * Usage:
+ * TASK_2(MTBDD, g, MTBDD, in) { ... return g of <in> ... }
+ * MTBDD x_vars = ...;  // the cube of variables x
+ * MTBDD result = mtbdd_eval_compose(dd, x_vars, TASK(g));
+ */
+LACE_TYPEDEF_CB(MTBDD, mtbdd_eval_compose_cb, MTBDD);
+TASK_DECL_3(MTBDD, mtbdd_eval_compose, MTBDD, MTBDD, mtbdd_eval_compose_cb);
+#define mtbdd_eval_compose(dd, vars, cb) CALL(mtbdd_eval_compose, dd, vars, cb)
 
 /**
  * For debugging.
@@ -622,7 +677,6 @@ VOID_TASK_DECL_4(mtbdd_visit_par, MTBDD, mtbdd_visit_pre_cb, mtbdd_visit_post_cb
 
 /**
  * Write <count> decision diagrams given in <dds> in internal binary form to <file>.
- * Does not yet support custom leaves.
  *
  * The internal binary format is as follows, to store <count> decision diagrams...
  * uint64_t: nodecount -- number of nodes
@@ -656,7 +710,7 @@ typedef struct sylvan_skiplist *sylvan_skiplist_t;
 /**
  * Allocate a skiplist for writing an MTBDD.
  */
-sylvan_skiplist_t mtbdd_writer_start();
+sylvan_skiplist_t mtbdd_writer_start(void);
 
 /**
  * Add the given MTBDD to the skiplist.
@@ -666,7 +720,6 @@ VOID_TASK_DECL_2(mtbdd_writer_add, sylvan_skiplist_t, MTBDD);
 
 /**
  * Write all assigned MTBDD nodes in binary format to the file.
- * Custom leaves are not yet supported.
  */
 void mtbdd_writer_writebinary(FILE *out, sylvan_skiplist_t sl);
 
@@ -690,11 +743,12 @@ void mtbdd_writer_end(sylvan_skiplist_t sl);
  * - call mtbdd_reader_readbinary to read the nodes from file
  * - call mtbdd_reader_get to obtain the MTBDD for the given identifier as stored in the file.
  * - call mtbdd_reader_end to free the array returned by mtbdd_reader_readbinary
+ *
+ * Returns 0 if successful, -1 otherwise.
  */
 
 /*
  * Read <count> decision diagrams to <dds> from <file> in internal binary form.
- * Does not yet support custom leaves.
  */
 TASK_DECL_3(int, mtbdd_reader_frombinary, FILE*, MTBDD*, int);
 #define mtbdd_reader_frombinary(file, dds, count) CALL(mtbdd_reader_frombinary, file, dds, count)
@@ -703,7 +757,7 @@ TASK_DECL_3(int, mtbdd_reader_frombinary, FILE*, MTBDD*, int);
  * Reading a file earlier written with mtbdd_writer_writebinary
  * Returns an array with the conversion from stored identifier to MTBDD
  * This array is allocated with malloc and must be freed afterwards.
- * This method does not support custom leaves.
+ * Returns NULL if there was an error.
  */
 
 TASK_DECL_1(uint64_t*, mtbdd_reader_readbinary, FILE*);
@@ -780,6 +834,7 @@ MTBDDMAP mtbdd_map_removeall(MTBDDMAP map, MTBDD variables);
 
 /**
  * Custom node types
+ *
  * Overrides standard hash/equality/notify_on_dead behavior
  * hash(value, seed) return hash version
  * equals(value1, value2) return 1 if equal, 0 if not equal
@@ -787,18 +842,57 @@ MTBDDMAP mtbdd_map_removeall(MTBDDMAP map, MTBDD variables);
  * destroy(value)
  * NOTE: equals(value1, value2) must imply: hash(value1, seed) == hash(value2,seed)
  * NOTE: new value of create must imply: equals(old, new)
+ * 
  * For the to_str callback, see the mtbdd_leaf_to_str method.
+ * write_binary writes a given leaf to file, return 0 if successful
+ * read_binary reads a leaf from file, return 0 if successful
  */
 typedef uint64_t (*mtbdd_hash_cb)(uint64_t, uint64_t);
 typedef int (*mtbdd_equals_cb)(uint64_t, uint64_t);
 typedef void (*mtbdd_create_cb)(uint64_t*);
 typedef void (*mtbdd_destroy_cb)(uint64_t);
-typedef char* (*leaf_to_str_cb)(int, uint64_t, char*, size_t);
 
 /**
- * Registry callback handlers for <type>.
+ * Writer/reader callbacks.
+ *
+ * leaf_to_string(complemented, value, buf, bufsize)
+ * - write a textual representation of leaf <value> (possible complemented) to <buf>
+ * - if <buf> is too small, allocate a new char array with malloc
+ * - return a pointer to either <buf> or the new char array.
+ *
+ * write_binary(file, value)
+ * - called after the writer writes the leaf with <type> and <value>
+ * - type and value is always stored, even if it is e.g. a pointer
+ * - write a binary representation of leaf <value> to <file>
+ *   (only if <value> is not a good representation)
+ * - return 0 on success
+ *
+ * read_binary(file, type, value, mtbdd_ptr)
+ * - read a binary representation of the leaf from <file>
+ * - the given <type> and <value> are obtained from the stored leaf
+ * - create or obtain the MTBDD of the leaf, for example using mtbdd_makeleaf with
+ *   the given <type> (this is the id of the custom type, for convenience)
+ * - write the new MTBDD to the address <mtbdd_ptr>
  */
-uint32_t mtbdd_register_custom_leaf(mtbdd_hash_cb hash_cb, mtbdd_equals_cb equals_cb, mtbdd_create_cb create_cb, mtbdd_destroy_cb destroy_cb, leaf_to_str_cb to_str_cb);
+typedef char* (*mtbdd_leaf_to_str_cb)(int, uint64_t, char*, size_t);
+typedef int (*mtbdd_write_binary_cb)(FILE*, uint64_t);
+typedef int (*mtbdd_read_binary_cb)(FILE*, uint32_t, uint64_t, MTBDD*);
+
+/**
+ * Register new leaf type.
+ */
+uint32_t mtbdd_register_custom_leaf(void);
+
+/**
+ * Set the callback handlers for <type>
+ */
+void mtbdd_custom_set_hash(uint32_t type, mtbdd_hash_cb hash_cb);
+void mtbdd_custom_set_equals(uint32_t type, mtbdd_equals_cb equals_cb);
+void mtbdd_custom_set_create(uint32_t type, mtbdd_create_cb create_cb);
+void mtbdd_custom_set_destroy(uint32_t type, mtbdd_destroy_cb destroy_cb);
+void mtbdd_custom_set_leaf_to_str(uint32_t type, mtbdd_leaf_to_str_cb to_str_cb);
+void mtbdd_custom_set_write_binary(uint32_t type, mtbdd_write_binary_cb write_binary_cb);
+void mtbdd_custom_set_read_binary(uint32_t type, mtbdd_read_binary_cb read_binary_cb);
 
 /**
  * Garbage collection
@@ -821,7 +915,7 @@ VOID_TASK_DECL_1(mtbdd_gc_mark_rec, MTBDD);
  */
 MTBDD mtbdd_ref(MTBDD a);
 void mtbdd_deref(MTBDD a);
-size_t mtbdd_count_refs();
+size_t mtbdd_count_refs(void);
 
 /**
  * Default external pointer referencing. During garbage collection, the pointers are followed and the MTBDD
@@ -829,7 +923,7 @@ size_t mtbdd_count_refs();
  */
 void mtbdd_protect(MTBDD* ptr);
 void mtbdd_unprotect(MTBDD* ptr);
-size_t mtbdd_count_protected();
+size_t mtbdd_count_protected(void);
 
 /**
  * If mtbdd_set_ondead is set to a callback, then this function marks MTBDDs (terminals).
