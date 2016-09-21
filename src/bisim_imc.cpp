@@ -402,10 +402,11 @@ TASK_IMPL_1(BDD, min_imc_strong, IMC&, imc)
 
     INFO("");
     INFO("Time for computing the bisimulation relation: %'0.2f sec.", t2-t1);
-    INFO("Time needed for Markovian signature computation: %'0.2f s.", t_msig);
-    INFO("Time needed for Markovian partition refinement: %'0.2f s.", t_mref);
-    INFO("Time needed for interactive signature computation: %'0.2f s.", t_isig);
-    INFO("Time needed for interactive partition refinement: %'0.2f s.", t_iref);
+    INFO("Time for Markovian signature computation: %'0.2f s.", t_msig);
+    INFO("Time for Markovian partition refinement: %'0.2f s.", t_mref);
+    INFO("Time for interactive signature computation: %'0.2f s.", t_isig);
+    INFO("Time for interactive partition refinement: %'0.2f s.", t_iref);
+    INFO("");
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
@@ -739,10 +740,11 @@ TASK_IMPL_1(BDD, min_imc_branching, IMC&, imc)
 
     INFO("");
     INFO("Time for computing the bisimulation relation: %'0.2f sec.", t2-t1);
-    INFO("Time needed for Markovian signature computation: %'0.2f s.", t_msig);
-    INFO("Time needed for Markovian partition refinement: %'0.2f s.", t_mref);
-    INFO("Time needed for interactive signature computation: %'0.2f s.", t_isig);
-    INFO("Time needed for interactive partition refinement: %'0.2f s.", t_iref);
+    INFO("Time for Markovian signature computation: %'0.2f s.", t_msig);
+    INFO("Time for Markovian partition refinement: %'0.2f s.", t_mref);
+    INFO("Time for interactive signature computation: %'0.2f s.", t_isig);
+    INFO("Time for interactive partition refinement: %'0.2f s.", t_iref);
+    INFO("");
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);

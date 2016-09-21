@@ -162,8 +162,9 @@ TASK_IMPL_1(BDD, min_ctmc, CTMC&, ctmc)
 
     INFO("");
     INFO("Time for computing the bisimulation relation: %'0.2f sec.", t2-t1);
-    INFO("Time needed for signature computation: %'0.2f sec.", t_sig);
-    INFO("Time needed for partition refinement: %'0.2f sec.", t_ref);
+    INFO("Time for signature computation: %'0.2f sec.", t_sig);
+    INFO("Time for partition refinement: %'0.2f sec.", t_ref);
+    INFO("");
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
