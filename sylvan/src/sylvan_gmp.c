@@ -24,6 +24,7 @@
 #include <sylvan_gmp.h>
 #include <gmp.h>
 
+static uint32_t gmp_type;
 
 /**
  * helper function for hash
@@ -110,8 +111,45 @@ gmp_to_str(int comp, uint64_t val, char *buf, size_t buflen)
     (void)comp;
 }
 
-static uint32_t gmp_type;
-static uint64_t CACHE_GMP_AND_EXISTS;
+static int
+gmp_write_binary(FILE* out, uint64_t val)
+{
+    mpq_ptr op = (mpq_ptr)val;
+
+    mpz_t i;
+    mpz_init(i);
+    mpq_get_num(i, op);
+    if (mpz_out_raw(out, i) == 0) return -1;
+    mpq_get_den(i, op);
+    if (mpz_out_raw(out, i) == 0) return -1;
+    mpz_clear(i);
+
+    return 0;
+}
+
+static int
+gmp_read_binary(FILE* in, uint32_t type, uint64_t val, MTBDD *dd_ptr)
+{
+    assert(type == gmp_type);
+    if (type != gmp_type) return -1;
+
+    mpq_t mres;
+    mpq_init(mres);
+
+    mpz_t i;
+    mpz_init(i);
+    if (mpz_inp_raw(i, in) == 0) return -1;
+    mpq_set_num(mres, i);
+    if (mpz_inp_raw(i, in) == 0) return -1;
+    mpq_set_den(mres, i);
+    mpz_clear(i);
+
+    *dd_ptr = mtbdd_gmp(mres);
+    mpq_clear(mres);
+
+    return 0;
+    (void)val;
+}
 
 /**
  * Initialize gmp custom leaves
@@ -119,9 +157,15 @@ static uint64_t CACHE_GMP_AND_EXISTS;
 void
 gmp_init()
 {
-    /* Register custom leaf 3 */
-    gmp_type = mtbdd_register_custom_leaf(gmp_hash, gmp_equals, gmp_create, gmp_destroy, gmp_to_str);
-    CACHE_GMP_AND_EXISTS = cache_next_opid();
+    /* Register custom leaf */
+    gmp_type = mtbdd_register_custom_leaf();
+    mtbdd_custom_set_hash(gmp_type, gmp_hash);
+    mtbdd_custom_set_equals(gmp_type, gmp_equals);
+    mtbdd_custom_set_create(gmp_type, gmp_create);
+    mtbdd_custom_set_destroy(gmp_type, gmp_destroy);
+    mtbdd_custom_set_leaf_to_str(gmp_type, gmp_to_str);
+    mtbdd_custom_set_write_binary(gmp_type, gmp_write_binary);
+    mtbdd_custom_set_read_binary(gmp_type, gmp_read_binary);
 }
 
 /**
@@ -148,6 +192,8 @@ TASK_IMPL_2(MTBDD, gmp_op_plus, MTBDD*, pa, MTBDD*, pb)
 
     /* If both leaves, compute plus */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
 
@@ -182,6 +228,8 @@ TASK_IMPL_2(MTBDD, gmp_op_minus, MTBDD*, pa, MTBDD*, pb)
 
     /* If both leaves, compute plus */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
 
@@ -214,6 +262,8 @@ TASK_IMPL_2(MTBDD, gmp_op_times, MTBDD*, pa, MTBDD*, pb)
 
     /* Handle multiplication of leaves */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
 
@@ -248,6 +298,8 @@ TASK_IMPL_2(MTBDD, gmp_op_divide, MTBDD*, pa, MTBDD*, pb)
 
     /* Handle division of leaves */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
 
@@ -279,6 +331,8 @@ TASK_IMPL_2(MTBDD, gmp_op_min, MTBDD*, pa, MTBDD*, pb)
 
     /* Compute result for leaves */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
         int cmp = mpq_cmp(ma, mb);
@@ -310,6 +364,8 @@ TASK_IMPL_2(MTBDD, gmp_op_max, MTBDD*, pa, MTBDD*, pb)
 
     /* Compute result for leaves */
     if (mtbdd_isleaf(a) && mtbdd_isleaf(b)) {
+        assert(mtbdd_gettype(a) == gmp_type && mtbdd_gettype(b) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
         int cmp = mpq_cmp(ma, mb);
@@ -335,6 +391,8 @@ TASK_IMPL_2(MTBDD, gmp_op_neg, MTBDD, dd, size_t, p)
 
     /* Compute result for leaf */
     if (mtbdd_isleaf(dd)) {
+        assert(mtbdd_gettype(dd) == gmp_type);
+
         mpq_ptr m = (mpq_ptr)mtbdd_getvalue(dd);
 
         mpq_t mres;
@@ -359,6 +417,8 @@ TASK_IMPL_2(MTBDD, gmp_op_abs, MTBDD, dd, size_t, p)
 
     /* Compute result for leaf */
     if (mtbdd_isleaf(dd)) {
+        assert(mtbdd_gettype(dd) == gmp_type);
+
         mpq_ptr m = (mpq_ptr)mtbdd_getvalue(dd);
 
         mpq_t mres;
@@ -439,6 +499,8 @@ TASK_2(MTBDD, gmp_op_threshold_d, MTBDD, a, size_t, svalue)
 
     /* Compute result */
     if (mtbdd_isleaf(a)) {
+        assert(mtbdd_gettype(a) == gmp_type);
+
         double value = *(double*)&svalue;
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         return mpq_get_d(ma) >= value ? mtbdd_true : mtbdd_false;
@@ -457,6 +519,8 @@ TASK_2(MTBDD, gmp_op_strict_threshold_d, MTBDD, a, size_t, svalue)
 
     /* Compute result */
     if (mtbdd_isleaf(a)) {
+        assert(mtbdd_gettype(a) == gmp_type);
+
         double value = *(double*)&svalue;
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         return mpq_get_d(ma) > value ? mtbdd_true : mtbdd_false;
@@ -488,6 +552,8 @@ TASK_IMPL_2(MTBDD, gmp_op_threshold, MTBDD*, pa, MTBDD*, pb)
 
     /* Handle comparison of leaves */
     if (mtbdd_isleaf(a)) {
+        assert(mtbdd_gettype(a) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
         int cmp = mpq_cmp(ma, mb);
@@ -510,6 +576,8 @@ TASK_IMPL_2(MTBDD, gmp_op_strict_threshold, MTBDD*, pa, MTBDD*, pb)
 
     /* Handle comparison of leaves */
     if (mtbdd_isleaf(a)) {
+        assert(mtbdd_gettype(a) == gmp_type);
+
         mpq_ptr ma = (mpq_ptr)mtbdd_getvalue(a);
         mpq_ptr mb = (mpq_ptr)mtbdd_getvalue(b);
         int cmp = mpq_cmp(ma, mb);
@@ -523,7 +591,7 @@ TASK_IMPL_2(MTBDD, gmp_op_strict_threshold, MTBDD*, pa, MTBDD*, pb)
  * Multiply <a> and <b>, and abstract variables <vars> using summation.
  * This is similar to the "and_exists" operation in BDDs.
  */
-TASK_IMPL_3(MTBDD, gmp_and_exists, MTBDD, a, MTBDD, b, MTBDD, v)
+TASK_IMPL_3(MTBDD, gmp_and_abstract_plus, MTBDD, a, MTBDD, b, MTBDD, v)
 {
     /* Check terminal cases */
 
@@ -545,8 +613,14 @@ TASK_IMPL_3(MTBDD, gmp_and_exists, MTBDD, a, MTBDD, b, MTBDD, v)
     /* Maybe perform garbage collection */
     sylvan_gc_test();
 
+    /* Count operation */
+    sylvan_stats_count(MTBDD_AND_ABSTRACT_PLUS);
+
     /* Check cache. Note that we do this now, since the times operator might swap a and b (commutative) */
-    if (cache_get3(CACHE_GMP_AND_EXISTS, a, b, v, &result)) return result;
+    if (cache_get3(CACHE_MTBDD_AND_ABSTRACT_PLUS, a, b, v, &result)) {
+        sylvan_stats_count(MTBDD_AND_ABSTRACT_PLUS_CACHED);
+        return result;
+    }
 
     /* Now, v is not a constant, and either a or b is not a constant */
 
@@ -564,7 +638,7 @@ TASK_IMPL_3(MTBDD, gmp_and_exists, MTBDD, a, MTBDD, b, MTBDD, v)
 
     if (vv < var) {
         /* Recursive, then abstract result */
-        result = CALL(gmp_and_exists, a, b, node_gethigh(v, nv));
+        result = CALL(gmp_and_abstract_plus, a, b, node_gethigh(v, nv));
         mtbdd_refs_push(result);
         result = mtbdd_apply(result, result, TASK(gmp_op_plus));
         mtbdd_refs_pop(1);
@@ -578,22 +652,112 @@ TASK_IMPL_3(MTBDD, gmp_and_exists, MTBDD, a, MTBDD, b, MTBDD, v)
 
         if (vv == var) {
             /* Recursive, then abstract result */
-            mtbdd_refs_spawn(SPAWN(gmp_and_exists, ahigh, bhigh, node_gethigh(v, nv)));
-            MTBDD low = mtbdd_refs_push(CALL(gmp_and_exists, alow, blow, node_gethigh(v, nv)));
-            MTBDD high = mtbdd_refs_push(mtbdd_refs_sync(SYNC(gmp_and_exists)));
+            mtbdd_refs_spawn(SPAWN(gmp_and_abstract_plus, ahigh, bhigh, node_gethigh(v, nv)));
+            MTBDD low = mtbdd_refs_push(CALL(gmp_and_abstract_plus, alow, blow, node_gethigh(v, nv)));
+            MTBDD high = mtbdd_refs_push(mtbdd_refs_sync(SYNC(gmp_and_abstract_plus)));
             result = CALL(mtbdd_apply, low, high, TASK(gmp_op_plus));
             mtbdd_refs_pop(2);
         } else /* vv > v */ {
             /* Recursive, then create node */
-            mtbdd_refs_spawn(SPAWN(gmp_and_exists, ahigh, bhigh, v));
-            MTBDD low = mtbdd_refs_push(CALL(gmp_and_exists, alow, blow, v));
-            MTBDD high = mtbdd_refs_sync(SYNC(gmp_and_exists));
+            mtbdd_refs_spawn(SPAWN(gmp_and_abstract_plus, ahigh, bhigh, v));
+            MTBDD low = mtbdd_refs_push(CALL(gmp_and_abstract_plus, alow, blow, v));
+            MTBDD high = mtbdd_refs_sync(SYNC(gmp_and_abstract_plus));
             mtbdd_refs_pop(1);
             result = mtbdd_makenode(var, low, high);
         }
     }
 
     /* Store in cache */
-    cache_put3(CACHE_GMP_AND_EXISTS, a, b, v, result);
+    if (cache_put3(CACHE_MTBDD_AND_ABSTRACT_PLUS, a, b, v, result)) {
+        sylvan_stats_count(MTBDD_AND_ABSTRACT_PLUS_CACHEDPUT);
+    }
+
+    return result;
+}
+
+/**
+ * Multiply <a> and <b>, and abstract variables <vars> by taking the maximum.
+ */
+TASK_IMPL_3(MTBDD, gmp_and_abstract_max, MTBDD, a, MTBDD, b, MTBDD, v)
+{
+    /* Check terminal cases */
+
+    /* If v == true, then <vars> is an empty set */
+    if (v == mtbdd_true) return mtbdd_apply(a, b, TASK(gmp_op_times));
+
+    /* Try the times operator on a and b */
+    MTBDD result = CALL(gmp_op_times, &a, &b);
+    if (result != mtbdd_invalid) {
+        /* Times operator successful, store reference (for garbage collection) */
+        mtbdd_refs_push(result);
+        /* ... and perform abstraction */
+        result = mtbdd_abstract(result, v, TASK(gmp_abstract_op_max));
+        mtbdd_refs_pop(1);
+        /* Note that the operation cache is used in mtbdd_abstract */
+        return result;
+    }
+
+    /* Now, v is not a constant, and either a or b is not a constant */
+
+    /* Get top variable */
+    int la = mtbdd_isleaf(a);
+    int lb = mtbdd_isleaf(b);
+    mtbddnode_t na = la ? 0 : MTBDD_GETNODE(a);
+    mtbddnode_t nb = lb ? 0 : MTBDD_GETNODE(b);
+    uint32_t va = la ? 0xffffffff : mtbddnode_getvariable(na);
+    uint32_t vb = lb ? 0xffffffff : mtbddnode_getvariable(nb);
+    uint32_t var = va < vb ? va : vb;
+
+    mtbddnode_t nv = MTBDD_GETNODE(v);
+    uint32_t vv = mtbddnode_getvariable(nv);
+
+    while (vv < var) {
+        /* we can skip variables, because max(r,r) = r */
+        v = node_high(v, nv);
+        if (v == mtbdd_true) return mtbdd_apply(a, b, TASK(gmp_op_times));
+        nv = MTBDD_GETNODE(v);
+        vv = mtbddnode_getvariable(nv);
+    }
+
+    /* Maybe perform garbage collection */
+    sylvan_gc_test();
+
+    /* Count operation */
+    sylvan_stats_count(MTBDD_AND_ABSTRACT_MAX);
+
+    /* Check cache. Note that we do this now, since the times operator might swap a and b (commutative) */
+    if (cache_get3(CACHE_MTBDD_AND_ABSTRACT_MAX, a, b, v, &result)) {
+        sylvan_stats_count(MTBDD_AND_ABSTRACT_MAX_CACHED);
+        return result;
+    }
+
+    /* Get cofactors */
+    MTBDD alow, ahigh, blow, bhigh;
+    alow  = (!la && va == var) ? node_getlow(a, na)  : a;
+    ahigh = (!la && va == var) ? node_gethigh(a, na) : a;
+    blow  = (!lb && vb == var) ? node_getlow(b, nb)  : b;
+    bhigh = (!lb && vb == var) ? node_gethigh(b, nb) : b;
+
+    if (vv == var) {
+        /* Recursive, then abstract result */
+        mtbdd_refs_spawn(SPAWN(gmp_and_abstract_max, ahigh, bhigh, node_gethigh(v, nv)));
+        MTBDD low = mtbdd_refs_push(CALL(gmp_and_abstract_max, alow, blow, node_gethigh(v, nv)));
+        MTBDD high = mtbdd_refs_push(mtbdd_refs_sync(SYNC(gmp_and_abstract_max)));
+        result = CALL(mtbdd_apply, low, high, TASK(gmp_op_max));
+        mtbdd_refs_pop(2);
+    } else /* vv > v */ {
+        /* Recursive, then create node */
+        mtbdd_refs_spawn(SPAWN(gmp_and_abstract_max, ahigh, bhigh, v));
+        MTBDD low = mtbdd_refs_push(CALL(gmp_and_abstract_max, alow, blow, v));
+        MTBDD high = mtbdd_refs_sync(SYNC(gmp_and_abstract_max));
+        mtbdd_refs_pop(1);
+        result = mtbdd_makenode(var, low, high);
+    }
+
+    /* Store in cache */
+    if (cache_put3(CACHE_MTBDD_AND_ABSTRACT_MAX, a, b, v, result)) {
+        sylvan_stats_count(MTBDD_AND_ABSTRACT_MAX_CACHEDPUT);
+    }
+
     return result;
 }
