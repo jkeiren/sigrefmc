@@ -98,11 +98,14 @@ TASK_IMPL_1(MTBDD, swap_prime, MTBDD, set)
     return result;
 }
 
-TASK_IMPL_3(double, big_satcount, MTBDD*, dds, size_t, count, size_t, nvars)
+TASK_IMPL_4(long double, big_satcount, MTBDD*, dds, size_t, count, size_t, nvars, MTBDD, filter)
 {
-    if (count == 1) return mtbdd_satcount(*dds, nvars);
-    SPAWN(big_satcount, dds, count/2, nvars);
-    double result = big_satcount(dds+count/2, count-count/2, nvars);
+    if (count == 1) {
+        MTBDD dd = filter == mtbdd_true ? *dds : mtbdd_times(*dds, filter);
+        return (long double)mtbdd_satcount(dd, nvars);
+    }
+    SPAWN(big_satcount, dds, count/2, nvars, filter);
+    long double result = big_satcount(dds+count/2, count-count/2, nvars, filter);
     return result + SYNC(big_satcount);
 }
 

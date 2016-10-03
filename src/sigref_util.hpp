@@ -37,8 +37,8 @@ TASK_DECL_1(MTBDD, swap_prime, MTBDD);
 /**
  * Compute \BigSatCount sets
  */
-TASK_DECL_3(double, big_satcount, MTBDD*, size_t, size_t);
-#define big_satcount(sets, count, nvars) CALL(big_satcount, sets, count, nvars)
+TASK_DECL_4(long double, big_satcount, MTBDD*, size_t, size_t, MTBDD);
+#define big_satcount(sets, count, nvars, filter) CALL(big_satcount, sets, count, nvars, filter)
 
 /**
  * Compute \BigUnion sets

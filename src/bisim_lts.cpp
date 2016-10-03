@@ -132,13 +132,15 @@ TASK_IMPL_1(BDD, min_lts_strong, LTS&, lts)
     /* Write some information */
 
     double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
-    double transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length);
+    long double transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length, mtbdd_true);
+    long double reachable_transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length, lts.getStates().GetBDD());
 
     INFO("Number of state variables: %d.", state_length);
     INFO("Number of action variables: %d.", action_length);
     INFO("Number of block variables: %d.", block_length);
     INFO("Number of transition relations: %d.", n_relations);
-    INFO("Number of transitions: %'0.0f transitions.", transitions_before);
+    INFO("Number of transitions: %'0.0Lf.", transitions_before);
+    INFO("Number of reachable transitions: %'0.0Lf.", reachable_transitions_before);
 
     if (verbosity >= 2) {
         size_t node_count = mtbdd_nodecount_more(transition_relations, n_relations);
@@ -232,7 +234,8 @@ TASK_IMPL_1(BDD, min_lts_strong, LTS&, lts)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
-    INFO("Number of transitions before bisimulation minimisation: %'0.0f.", transitions_before);
+    INFO("Number of transitions before bisimulation minimisation: %'0.0Lf.", transitions_before);
+    INFO("Number of reachable transitions before bisimulation minimisation: %'0.0Lf.", reachable_transitions_before);
     INFO("Number of transitions after bisimulation minimisation: %'0.0f.", transitions_after);
 
     sylvan_deref(st_variables);
@@ -311,13 +314,15 @@ TASK_IMPL_1(BDD, min_lts_branching, LTS&, lts)
     /* Write some information */
 
     double n_states = sylvan_satcount(partition, sylvan_and(prime_variables, block_variables));
-    double transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length);
+    long double transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length, mtbdd_true);
+    long double reachable_transitions_before = big_satcount(transition_relations, n_relations, state_length*2+action_length, lts.getStates().GetBDD());
 
     INFO("Number of state variables: %d.", state_length);
     INFO("Number of action variables: %d.", action_length);
     INFO("Number of block variables: %d.", block_length);
     INFO("Number of transition relations: %d.", n_relations);
-    INFO("Number of transitions: %'0.0f transitions.", transitions_before);
+    INFO("Number of transitions: %'0.0Lf.", transitions_before);
+    INFO("Number of reachable transitions: %'0.0Lf.", reachable_transitions_before);
 
     if (verbosity >= 2) {
         size_t node_count = mtbdd_nodecount_more(transition_relations, n_relations);
@@ -531,7 +536,8 @@ TASK_IMPL_1(BDD, min_lts_branching, LTS&, lts)
     INFO("Number of iterations: %'zu.", iteration-1);
     INFO("Number of states before bisimulation minimisation: %'0.0f.", n_states);
     INFO("Number of blocks after bisimulation minimisation: %'zu.", n_blocks);
-    INFO("Number of transitions before bisimulation minimisation: %'0.0f.", transitions_before);
+    INFO("Number of transitions before bisimulation minimisation: %'0.0Lf.", transitions_before);
+    INFO("Number of reachable transitions before bisimulation minimisation: %'0.0Lf.", reachable_transitions_before);
     INFO("Number of transitions after bisimulation minimisation: %'0.0f.", transitions_after);
 
     sylvan_deref(st_variables);
