@@ -43,7 +43,7 @@ extern int ordering; // 0 = s,t < a < B, 1 = s,t < B < a, default: 0
 /* Obtain current wallclock time */
 extern double t_start;
 double wctime();
-#define INFO(s, ...) fprintf(stdout, "[% 8.2f] " s "\n", wctime()-t_start, ##__VA_ARGS__)
+#define INFO(s, ...) { fprintf(stdout, "[% 8.2f] " s "\n", wctime()-t_start, ##__VA_ARGS__); fflush(stdout); }
 
 #ifndef cas
 #define cas(ptr, old, new) (__sync_bool_compare_and_swap((ptr),(old),(new)))
