@@ -54,6 +54,7 @@ int tau_action = 0; // default: 0
 int ordering = 0; // 0 = s,t < a < B, 1 = s,t < B < a, default: 0
 int quotient_type = 0; // 0 = no quotient, 1 = standard operations, 2 = standard operations variant 2, 3 = custom operations, 4 = pick-random, 5 = test (generate explicit output file for each type except pick-random)
 int output_type = 0; // 0 = no output, 1 = explicit output, 2 = symbolic output
+const char *table_sizes = "22,27,21,26"; // default table sizes (powers of 2)
 
 /* argp configuration */
 static struct argp_option options[] =
@@ -67,6 +68,7 @@ static struct argp_option options[] =
     {"reachable", 'r', 0, 0, "Limit partition to reachable states", 0},
     {"tau", 't', "<tau-action>", 0, "Which action is tau (default=0)", 0},
     {"blocks-first", 1, 0, 0, "Order block variables before action variables", 0},
+    {"table-sizes", 2, "<tablesize,tablemax,cachesize,cachemax>", 0, "Nodes table and operation cache sizes as powers of 2", 0},
 #ifdef HAVE_PROFILER
     {"profiler", 'p', "<filename>", 0, "Filename for profiling", 0},
 #endif
@@ -112,6 +114,9 @@ parse_opt(int key, char *arg, struct argp_state *state)
         break;
     case 1:
         ordering = 1;
+        break;
+    case 2:
+        table_sizes = arg;
         break;
     case 'c':
         if (arg[0] == 'f') {
@@ -182,6 +187,19 @@ wctime()
     return (tv.tv_sec + 1E-6 * tv.tv_usec);
 }
 
+/**
+ * Small helper function
+ */
+static char*
+to_h(double size, char *buf)
+{
+    const char* units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"};
+    int i = 0;
+    for (;size>1024;size/=1024) i++;
+    sprintf(buf, "%.*f %s", i, size, units[i]);
+    return buf;
+}
+
 VOID_TASK_0(gc_start)
 {
     INFO("(GC) Starting garbage collection...");
@@ -196,13 +214,38 @@ VOID_TASK_1(main_lace, void*, arg)
 {
     setlocale(LC_NUMERIC, "en_US.utf-8");
 
-    sylvan_init_package(1LL<<26, 1LL<<27, 1LL<<25, 1LL<<26);
+    t_start = wctime();
+
+    int tablesize, maxtablesize, cachesize, maxcachesize;
+    if (sscanf(table_sizes, "%d,%d,%d,%d", &tablesize, &maxtablesize, &cachesize, &maxcachesize) != 4) {
+        INFO("Invalid string for --table-sizes, try e.g. --table-sizes=23,28,22,27");
+        return;
+    }
+    if (tablesize < 10 || maxtablesize < 10 || cachesize < 10 || maxcachesize < 10 ||
+            tablesize > 40 || maxtablesize > 40 || cachesize > 40 || maxcachesize > 40) {
+        INFO("Invalid string for --table-sizes, must be between 10 and 40");
+        return;
+    }
+    if (tablesize > maxtablesize) {
+        INFO("Invalid string for --table-sizes, tablesize is larger than maxtablesize");
+        return;
+    }
+    if (cachesize > maxcachesize) {
+        INFO("Invalid string for --table-sizes, cachesize is larger than maxcachesize");
+        return;
+    }
+
+    char buf[32];
+    to_h((1ULL<<maxtablesize)*24+(1ULL<<maxcachesize)*36, buf);
+    INFO("Sylvan allocates %s virtual memory for nodes table and operation cache.", buf);
+    to_h((1ULL<<tablesize)*24+(1ULL<<cachesize)*36, buf);
+    INFO("Initial nodes table and operation cache requires %s.", buf);
+
+    sylvan_init_package(1LL<<tablesize, 1LL<<maxtablesize, 1LL<<cachesize, 1LL<<maxcachesize);
     sylvan_init_mtbdd();
     gmp_init();
     sylvan_gc_hook_pregc(TASK(gc_start));
     sylvan_gc_hook_postgc(TASK(gc_end));
-
-    t_start = wctime();
 
     /* Initialization done, now read model from file */
 
