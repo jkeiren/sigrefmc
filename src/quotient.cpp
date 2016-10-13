@@ -1006,6 +1006,7 @@ void Minimizations::minimize1(LTS& lts, BDD partition, int improved)
             /* extend the domain of the relation if needed */
             trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
         }
+        mtbdd_refs_push(trans[i]);
         if (!improved) {
             /* use first algorithm */
             trans[i] = translate_trans_1(lts, trans[i], partition, tau);
@@ -1013,6 +1014,8 @@ void Minimizations::minimize1(LTS& lts, BDD partition, int improved)
             /* use improved algorithm */
             trans[i] = translate_trans_2(lts, trans[i], partition, tau);
         }
+        mtbdd_refs_pop(1);
+        mtbdd_refs_push(trans[i]);
     }
 
     double t2 = wctime();
@@ -1065,6 +1068,7 @@ void Minimizations::minimize1(LTS& lts, BDD partition, int improved)
         lts.transitions[i].first = trans[i];
         lts.transitions[i].second = st_vars;
     }
+    mtbdd_refs_pop(n_relations);
 
     sylvan_stats_t s3;
     sylvan_stats_snapshot(&s3);
@@ -1132,6 +1136,7 @@ void Minimizations::minimize1(IMC &imc, BDD partition, int improved)
             /* extend the domain of the relation if needed */
             trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
         }
+        mtbdd_refs_push(trans[i]);
         if (!improved) {
             /* use first algorithm */
             trans[i] = translate_trans_1(imc, trans[i], partition, tau);
@@ -1139,6 +1144,8 @@ void Minimizations::minimize1(IMC &imc, BDD partition, int improved)
             /* use improved algorithm */
             trans[i] = translate_trans_2(imc, trans[i], partition, tau);
         }
+        mtbdd_refs_pop(1);
+        mtbdd_refs_push(trans[i]);
     }
 
     double t2 = wctime();
@@ -1186,6 +1193,7 @@ void Minimizations::minimize1(IMC &imc, BDD partition, int improved)
         imc.transitions[i].first = trans[i];
         imc.transitions[i].second = st_vars;
     }
+    mtbdd_refs_pop(n_relations);
 
     sylvan_stats_t s3;
     sylvan_stats_snapshot(&s3);
@@ -1381,7 +1389,10 @@ void Minimizations::minimize2(LTS& lts, BDD partition)
             /* extend the domain of the relation if needed */
             trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
         }
+        mtbdd_refs_push(trans[i]);
         trans[i] = CALL(compute_trans_quotient, trans[i], partition, partition, st_vars, tau);
+        mtbdd_refs_pop(1);
+        mtbdd_refs_push(trans[i]);
     }
 
     double t2 = wctime();
@@ -1447,6 +1458,7 @@ void Minimizations::minimize2(LTS& lts, BDD partition)
             lts.transitions[i].first = trans[i];
             lts.transitions[i].second = st_vars;
         }
+        mtbdd_refs_pop(n_relations);
     }
 
     sylvan_stats_t s3;
@@ -1548,7 +1560,9 @@ void Minimizations::minimize2(IMC &imc, BDD partition)
                 /* extend the domain of the relation if needed */
                 trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
             }
+            mtbdd_refs_push(trans[i]);
             imc.transitions[i].first = CALL(compute_trans_quotient, trans[i], partition, partition, st_vars, tau);
+            mtbdd_refs_pop(1);
         }
     }
 
@@ -1602,6 +1616,7 @@ void Minimizations::minimize2(IMC &imc, BDD partition)
         for (int i=0; i<n_relations; i++) {
             imc.transitions[i].second = st_vars;
         }
+        mtbdd_refs_pop(n_relations);
     }
 
     sylvan_stats_t s3;
@@ -1813,7 +1828,10 @@ void Minimizations::minimize3(LTS& lts, BDD partition)
             /* extend the domain of the relation if needed */
             trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
         }
+        mtbdd_refs_push(trans[i]);
         trans[i] = CALL(compute_trans_quotient, trans[i], partition, partition, st_vars, tau);
+        mtbdd_refs_pop(1);
+        mtbdd_refs_push(trans[i]);
     }
 
     double t2 = wctime();
@@ -1881,6 +1899,7 @@ void Minimizations::minimize3(LTS& lts, BDD partition)
             lts.transitions[i].first = trans[i];
             lts.transitions[i].second = st_vars;
         }
+        mtbdd_refs_pop(n_relations);
     }
 
     sylvan_stats_t s3;
@@ -1988,7 +2007,9 @@ void Minimizations::minimize3(IMC &imc, BDD partition)
                 /* extend the domain of the relation if needed */
                 trans[i] = CALL(extend_relation, trans[i], transitions[i].second.GetBDD(), state_length);
             }
+            mtbdd_refs_push(trans[i]);
             imc.transitions[i].first = CALL(compute_trans_quotient, trans[i], partition, partition, st_vars, tau);
+            mtbdd_refs_pop(1);
         }
     }
 
