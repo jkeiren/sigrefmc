@@ -57,6 +57,8 @@ extern llmsset_t nodes;
 #define CACHE_BDD_ISBDD                 (12LL<<40)
 #define CACHE_BDD_SUPPORT               (13LL<<40)
 #define CACHE_BDD_PATHCOUNT             (14LL<<40)
+#define CACHE_BDD_FORALL_PREIMAGE       (15LL<<40) // RICHARD
+#define CACHE_BDD_RELCOMP               (16LL<<40) // RICHARD
 
 // MDD operations
 #define CACHE_MDD_RELPROD               (20LL<<40)
@@ -88,6 +90,7 @@ extern llmsset_t nodes;
 #define CACHE_MTBDD_LESS                (53LL<<40)
 #define CACHE_MTBDD_GEQ                 (54LL<<40)
 #define CACHE_MTBDD_GREATER             (55LL<<40)
+#define CACHE_MTBDD_EVAL_COMPOSE        (56LL<<40)
 
 #ifdef __cplusplus
 }
