@@ -24,6 +24,10 @@ namespace sigref {
 
 TASK_DECL_1(BDD, min_lts_strong, sigref::LTS&);
 
+TASK_DECL_1(BDD, min_lts_strong2, sigref::LTS&);
+
+TASK_DECL_1(BDD, min_lts_strong3, sigref::LTS&);
+
 TASK_DECL_1(BDD, min_lts_branching, sigref::LTS&);
 
 TASK_DECL_1(BDD, min_ctmc, sigref::CTMC&);

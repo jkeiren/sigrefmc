@@ -25,9 +25,14 @@
 
 namespace sigref {
 
+class CTMC;
+class LTS;
+class IMC;
+
 class StateSystem {
     friend class SystemParser;
     friend class BddLtsParser;
+    friend class Minimizations;
 
     sylvan::Bdd states;
     sylvan::Bdd initialStates;
@@ -50,6 +55,7 @@ class LTS: public StateSystem
 {
     friend class SystemParser;
     friend class BddLtsParser;
+    friend class Minimizations;
 
     std::vector<std::pair<sylvan::Bdd,sylvan::Bdd>> transitions;
     sylvan::Bdd tau;
@@ -62,6 +68,7 @@ public:
 class CTMC: public StateSystem
 {
     friend class SystemParser;
+    friend class Minimizations;
 
     sylvan::Mtbdd markov_transitions;
 
@@ -71,6 +78,7 @@ public:
 
 class IMC: public LTS {
     friend class SystemParser;
+    friend class Minimizations;
 
     sylvan::Mtbdd markov_transitions;
 
