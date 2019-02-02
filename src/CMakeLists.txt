@@ -7,6 +7,7 @@ set(SOURCES
     bisimulation.hpp
     bisim_ctmc.cpp
     bisim_lts.cpp
+    bisim_lts2.cpp
     bisim_imc.cpp
     getrss.h
     getrss.c
@@ -24,6 +25,10 @@ set(SOURCES
     sigref.cpp
     sigref_util.hpp
     sigref_util.cpp
+    quotient.hpp
+    quotient.cpp
+    writer.hpp
+    writer.cpp
     )
 
 add_executable(sigrefmc ${SOURCES} refine_sl.c)
