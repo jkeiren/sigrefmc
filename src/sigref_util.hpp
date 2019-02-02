@@ -37,8 +37,8 @@ TASK_DECL_1(MTBDD, swap_prime, MTBDD);
 /**
  * Compute \BigSatCount sets
  */
-TASK_DECL_3(double, big_satcount, MTBDD*, size_t, size_t);
-#define big_satcount(sets, count, nvars) CALL(big_satcount, sets, count, nvars)
+TASK_DECL_4(long double, big_satcount, MTBDD*, size_t, size_t, MTBDD);
+#define big_satcount(sets, count, nvars, filter) CALL(big_satcount, sets, count, nvars, filter)
 
 /**
  * Compute \BigUnion sets
@@ -58,6 +58,14 @@ TASK_DECL_3(double, count_transitions, size_t, size_t, size_t);
  */
 TASK_DECL_3(BDD, extend_relation, BDD, BDD, int);
 #define extend_relation(rel, vars, state_length) CALL(extend_relation, rel, vars, state_length)
+
+
+/**
+ * -RICHARD-
+ * Rename variables old_vars in BDD a to new_vars
+ */
+TASK_DECL_3(BDD, rename_vars, BDD, BDD, BDD)
+#define rename_vars(a, old_vars, new_vars) CALL(rename_vars, a, old_vars, new_vars)
 
 } // namespace sigref
 
