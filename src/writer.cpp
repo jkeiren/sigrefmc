@@ -22,6 +22,8 @@
 #include <sigref_util.hpp>
 #include <writer.hpp>
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdio.h>
 #include <sylvan_stats.h>
 
@@ -67,7 +69,7 @@ writeSignatures(const char *filename, CTMC& ctmc)
             /* decode block */
             uint64_t to_block = 0;
             for (int j=0; j<block_length; j++) if (arr[j] == 1) to_block |= 1ULL<<j;
-            fprintf(f, "%zu %zu ", i, to_block);
+            fprintf(f, "%zu %" PRIu64 " ", i, to_block);
             mtbdd_fprint_leaf(f, leaf);
             fprintf(f, "\n");
             leaf = mtbdd_enum_all_next(sig, block_variables, arr, NULL);
@@ -120,7 +122,7 @@ writeSignatures(const char *filename, LTS& lts)
             /* decode block */
             uint64_t to_block = 0;
             for (int j=0; j<block_length; j++) if (arr[action_length+j] == 1) to_block |= 1ULL<<j;
-            fprintf(f, "%zu, %zu, %zu\n", i, to_block, action);
+            fprintf(f, "%zu, %" PRIu64 ", %" PRIu64 "\n", i, to_block, action);
             leaf = mtbdd_enum_all_next(sig, vars, arr, NULL);
         }
     }
@@ -167,7 +169,7 @@ writeExplicitOutput(const char *filename, CTMC& ctmc)
             /* decode from block */
             uint64_t block = 0;
             for (int j=0; j<state_length; j++) if (arr[j] == 1) block |= 1ULL<<j;
-            fprintf(f, "%zu ", block);
+            fprintf(f, "%" PRIu64 " ", block);
             leaf = mtbdd_enum_all_next(initial_states, vars, arr, NULL);
         }
         fprintf(f, "\n");
@@ -187,7 +189,7 @@ writeExplicitOutput(const char *filename, CTMC& ctmc)
             /* decode to block */
             uint64_t to_block = 0;
             for (int j=0; j<state_length; j++) if (arr[j*2+1] == 1) to_block |= 1ULL<<j;
-            fprintf(f, "%zu %zu ", from_block, to_block);
+            fprintf(f, "%" PRIu64 " %" PRIu64 " ", from_block, to_block);
             mtbdd_fprint_leaf(f, leaf);
             fprintf(f, "\n");
             leaf = mtbdd_enum_all_next(markov_trans, vars, arr, NULL);
@@ -245,7 +247,7 @@ writeExplicitOutput(const char *filename, LTS& lts)
             /* decode from block */
             uint64_t block = 0;
             for (int j=0; j<state_length; j++) if (arr[j] == 1) block |= 1ULL<<j;
-            fprintf(f, "%zu ", block);
+            fprintf(f, "%" PRIu64 " ", block);
             leaf = mtbdd_enum_all_next(initial_states, vars, arr, NULL);
         }
         fprintf(f, "\n");
@@ -268,7 +270,7 @@ writeExplicitOutput(const char *filename, LTS& lts)
             /* decode action */
             uint64_t action = 0;
             for (int j=0; j<action_length; j++) if (arr[2*state_length+j] == 1) action |= 1ULL<<j;
-            fprintf(f, "%zu, %zu, %zu\n", from_block, to_block, action);
+            fprintf(f, "%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n", from_block, to_block, action);
             leaf = mtbdd_enum_all_next(rel, sta_vars, arr, NULL);
         }
     }
@@ -325,7 +327,7 @@ writeExplicitOutput(const char *filename, IMC& imc)
             /* decode from block */
             uint64_t block = 0;
             for (int j=0; j<state_length; j++) if (arr[j] == 1) block |= 1ULL<<j;
-            fprintf(f, "%zu ", block);
+            fprintf(f, "%" PRIu64 " ", block);
             leaf = mtbdd_enum_all_next(initial_states, vars, arr, NULL);
         }
         fprintf(f, "\n");
@@ -344,7 +346,7 @@ writeExplicitOutput(const char *filename, IMC& imc)
             /* decode to block */
             uint64_t to_block = 0;
             for (int j=0; j<state_length; j++) if (arr[j*2+1] == 1) to_block |= 1ULL<<j;
-            fprintf(f, "%zu %zu ", from_block, to_block);
+            fprintf(f, "%" PRIu64 " %" PRIu64 " ", from_block, to_block);
             mtbdd_fprint_leaf(f, leaf);
             fprintf(f, "\n");
             leaf = mtbdd_enum_all_next(markov_trans, vars, arr, NULL);
@@ -369,7 +371,7 @@ writeExplicitOutput(const char *filename, IMC& imc)
                 /* decode action */
                 uint64_t action = 0;
                 for (int j=0; j<action_length; j++) if (arr[2*state_length+j] == 1) action |= 1ULL<<j;
-                fprintf(f, "%zu, %zu, %zu\n", from_block, to_block, action);
+                fprintf(f, "%" PRIu64 ", %" PRIu64 ", %" PRIu64 "\n", from_block, to_block, action);
                 leaf = mtbdd_enum_all_next(rel, sta_vars, arr, NULL);
             }
         }

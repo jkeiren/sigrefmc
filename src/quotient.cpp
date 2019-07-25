@@ -18,6 +18,9 @@
 #include <sylvan_int.h>
 #include <sylvan_gmp.h>
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <quotient.hpp>
 #include <refine.h>
 #include <blocks.h>
@@ -2120,7 +2123,7 @@ VOID_TASK_IMPL_2(enumerate_partition, BDD, partition, BDD, varT)
         for (int i=0; i<state_length; i++) if (arr[i]) state |= 1ULL<<i;
         uint64_t block = 0;
         for (int i=0; i<block_length; i++) if (arr[state_length+i]) block |= 1ULL<<i;
-        printf("%-8zu %zu\n", state, block);
+        printf("%-8" PRIu64 " %" PRIu64 "\n", state, block);
         leaf = mtbdd_enum_all_next(partition, vars, arr, NULL);
     }
 }
@@ -2139,7 +2142,7 @@ enumerate_states(BDD states, BDD state_vars)
     while (leaf != mtbdd_false) {
         uint64_t s = 0;
         for (int i=0; i<state_length; i++) if (arr[i]) s |= 1ULL<<i;
-        printf("%zu\n", s);
+        printf("%" PRIu64 "\n", s);
         leaf = mtbdd_enum_all_next(states, state_vars, arr, NULL);
     }
 }
@@ -2161,7 +2164,7 @@ enumerate_markov_transitions(MTBDD trans, StateSystem &system)
         for (int i=0; i<state_length; i++) if (arr[i*2]) from |= 1ULL<<i;
         uint64_t to = 0;
         for (int i=0; i<state_length; i++) if (arr[i*2+1]) to |= 1ULL<<i;
-        printf("%-8zu %-8zu ", from, to);
+        printf("%-8" PRIu64 " %-8" PRIu64 " ", from, to);
         mtbdd_fprint_leaf(stdout, leaf);
         printf("\n");
         leaf = mtbdd_enum_all_next(trans, vars, arr, NULL);
