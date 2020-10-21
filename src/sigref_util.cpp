@@ -98,11 +98,14 @@ TASK_IMPL_1(MTBDD, swap_prime, MTBDD, set)
     return result;
 }
 
-TASK_IMPL_3(double, big_satcount, MTBDD*, dds, size_t, count, size_t, nvars)
+TASK_IMPL_4(long double, big_satcount, MTBDD*, dds, size_t, count, size_t, nvars, MTBDD, filter)
 {
-    if (count == 1) return mtbdd_satcount(*dds, nvars);
-    SPAWN(big_satcount, dds, count/2, nvars);
-    double result = big_satcount(dds+count/2, count-count/2, nvars);
+    if (count == 1) {
+        MTBDD dd = filter == mtbdd_true ? *dds : mtbdd_times(*dds, filter);
+        return (long double)mtbdd_satcount(dd, nvars);
+    }
+    SPAWN(big_satcount, dds, count/2, nvars, filter);
+    long double result = big_satcount(dds+count/2, count-count/2, nvars, filter);
     return result + SYNC(big_satcount);
 }
 
@@ -140,7 +143,6 @@ TASK_IMPL_3(BDD, extend_relation, BDD, relation, BDD, variables, int, state_leng
         has[v/2] = 1;
         s = sylvan_high(s);
     }
-
     /* create "s=s'" for all variables not in rel */
     BDD eq = sylvan_true;
     for (int i=state_length-1; i>=0; i--) {
@@ -158,5 +160,50 @@ TASK_IMPL_3(BDD, extend_relation, BDD, relation, BDD, variables, int, state_leng
 
     return result;
 }
+
+
+/**
+ * -RICHARD-
+ * Rename variables old_vars in BDD F to new_vars
+ */
+TASK_IMPL_3(BDD, rename_vars, BDD, F, BDD, old_vars, BDD, new_vars)
+{
+    if (mtbdd_isleaf(F)) return F;
+ 
+    BDDVAR F_var = mtbdd_getvar(F);   
+    if (F_var >= 99999) return F;
+
+    BDD result;
+    if (cache_get3(CACHE_RENAME, F, old_vars, new_vars, &result)) return result;
+
+    sylvan_gc_test();
+    
+    BDD old_vars_copy = old_vars;
+    BDD new_vars_copy = new_vars;
+
+    while (mtbdd_getvar(old_vars) != F_var) {
+        if (mtbdd_isleaf(old_vars)) break;
+        old_vars = mtbdd_gethigh(old_vars);
+        new_vars = mtbdd_gethigh(new_vars);
+    }
+
+    BDD low, high;
+    bdd_refs_spawn(SPAWN(rename_vars, mtbdd_gethigh(F), old_vars_copy, new_vars_copy));
+    low = CALL(rename_vars, mtbdd_getlow(F), old_vars_copy, new_vars_copy);
+    bdd_refs_push(low);
+    high = bdd_refs_sync(SYNC(rename_vars));
+    bdd_refs_pop(1);
+    
+    if (F_var == mtbdd_getvar(old_vars))
+        F_var = mtbdd_getvar(new_vars);
+    
+    result = sylvan_makenode(F_var, low, high);
+
+    cache_put3(CACHE_RENAME, F, old_vars_copy, new_vars_copy, result);
+
+    return result;
+}
+
+
 
 }

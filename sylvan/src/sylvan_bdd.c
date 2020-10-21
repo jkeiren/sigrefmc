@@ -1214,6 +1214,239 @@ TASK_IMPL_4(BDD, sylvan_relprev, BDD, a, BDD, b, BDDSET, vars, BDDVAR, prev_leve
     return result;
 }
 
+
+TASK_IMPL_3(BDD, sylvan_forall_preimage, BDD, R, BDD, T, BDDVAR, prev_level)
+{
+    /* Terminals */
+    if (R == sylvan_false && T == sylvan_true) return sylvan_false;
+    if (R == sylvan_true || T == sylvan_false) return sylvan_true;
+
+    /* Perhaps execute garbage collection */
+    sylvan_gc_test();
+
+    /* Count operation */
+    sylvan_stats_count(BDD_FORALL_PREIMAGE);
+
+    /* Determine top level */
+    bddnode_t nR = sylvan_isconst(R) ? 0 : MTBDD_GETNODE(R);
+    bddnode_t nT = sylvan_isconst(T) ? 0 : MTBDD_GETNODE(T);
+
+    BDDVAR vR = nR ? bddnode_getvariable(nR) : 0xffffffff;
+    BDDVAR vT = nT ? bddnode_getvariable(nT) : 0xffffffff;
+    BDDVAR level = vR < vT ? vR : vT;
+
+    /* Consult cache */
+    int cachenow = granularity < 2 || prev_level == 0 ? 1 : prev_level / granularity != level / granularity;
+    if (cachenow) {
+        BDD result;
+        if (cache_get3(CACHE_BDD_FORALL_PREIMAGE, R, T, 0, &result)) {
+            sylvan_stats_count(BDD_FORALL_PREIMAGE_CACHED);
+            return result;
+        }
+    }
+
+    BDD result, low, high;
+    if (level == vR && level%2 == 0) {
+        if (level == vT) {
+            BDD aLow, aHigh, bLow, bHigh;
+
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_high(R), sylvan_high(T), level));
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_high(R), sylvan_low(T), level));
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_low(R), sylvan_high(T), level));
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_low(R), sylvan_low(T), level));
+
+            aLow = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_push(aLow);
+            aHigh = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_push(aHigh);
+            bLow = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_push(bLow);
+            bHigh = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_pop(3);
+
+            low = sylvan_makenode(vT+1, aLow, aHigh);
+            high = sylvan_makenode(vT+1, bLow, bHigh);
+        } else {
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_high(R), T, level));
+            bdd_refs_spawn(SPAWN(sylvan_forall_preimage, sylvan_low(R), T, level));
+
+            low = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_push(low);
+            high = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+            bdd_refs_pop(1);
+        }
+        result = sylvan_makenode(vR, low, high);
+    } else if (level == vT && level%2 == 0) {
+        bdd_refs_spawn(SPAWN(sylvan_forall_preimage, R, sylvan_high(T), level));
+        bdd_refs_spawn(SPAWN(sylvan_forall_preimage, R, sylvan_low(T), level));
+
+        low = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+        bdd_refs_pop(1);
+        result = sylvan_makenode(vT+1, low, high);
+    } else {
+        BDD aLow, bLow, aHigh, bHigh;
+        aLow = (vR == level) ? sylvan_low(R) : R;
+        bLow = (vR == level) ? sylvan_high(R) : R;
+        aHigh = (vT == level) ? sylvan_low(T) : T;
+        bHigh = (vT == level) ? sylvan_high(T) : T;
+
+        bdd_refs_spawn(SPAWN(sylvan_forall_preimage, bLow, bHigh, level));
+        bdd_refs_spawn(SPAWN(sylvan_forall_preimage, aLow, aHigh, level));
+
+        low = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_forall_preimage));
+        bdd_refs_push(high);
+        result = sylvan_and(low, high);
+        bdd_refs_pop(2);
+    }
+
+    if (cachenow) {
+        if (cache_put3(CACHE_BDD_FORALL_PREIMAGE, R, T, 0, result)) sylvan_stats_count(BDD_FORALL_PREIMAGE_CACHEDPUT);
+    }
+    
+    return result;
+}
+
+TASK_IMPL_3(BDD, sylvan_relcomp, BDD, R1, BDD, R2, BDDVAR, prev_level)
+{
+    /* Terminals */
+    if (R1 == sylvan_false || R2 == sylvan_false) return sylvan_false;
+    if (R1 == sylvan_true && R2 == sylvan_true) return sylvan_true;
+
+    /* Perhaps execute garbage collection */
+    sylvan_gc_test();
+
+    /* Count operation */
+    sylvan_stats_count(BDD_RELCOMP);
+
+    /* Determine top level */
+    bddnode_t nR1 = sylvan_isconst(R1) ? 0 : MTBDD_GETNODE(R1);
+    bddnode_t nR2 = sylvan_isconst(R2) ? 0 : MTBDD_GETNODE(R2);
+
+    BDDVAR vR1 = nR1 ? bddnode_getvariable(nR1) : 0xffffffff;
+    BDDVAR vR2 = nR2 ? bddnode_getvariable(nR2) : 0xffffffff;
+    BDDVAR level = vR1 < vR2 ? vR1 : vR2;
+
+    /* Consult cache */
+    int cachenow = granularity < 2 || prev_level == 0 ? 1 : prev_level / granularity != level / granularity;
+    if (cachenow) {
+        BDD result;
+        if (cache_get3(CACHE_BDD_RELCOMP, R1, R2, 0, &result)) {
+            sylvan_stats_count(BDD_RELCOMP_CACHED);
+            return result;
+        }
+    }
+
+    BDD result, low, high;
+
+    if (level == vR1 && level == vR2 && level%2 == 0) {
+        BDD R1_low = sylvan_low(R1);
+        BDD R1_high = sylvan_high(R1);
+
+        BDD R1_00, R1_01, R1_10, R1_11;
+        R1_00 = (sylvan_var(R1_low) == level+1) ? sylvan_low(R1_low) : R1_low;
+        R1_01 = (sylvan_var(R1_low) == level+1) ? sylvan_high(R1_low) : R1_low;
+        R1_10 = (sylvan_var(R1_high) == level+1) ? sylvan_low(R1_high) : R1_high;
+        R1_11 = (sylvan_var(R1_high) == level+1) ? sylvan_high(R1_high) : R1_high;
+
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1_11, sylvan_high(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1_10, sylvan_low(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1_01, sylvan_high(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1_00, sylvan_low(R2), level+1));
+
+        BDD aLow, aHigh, bLow, bHigh;
+        aLow = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(aLow);
+        aHigh = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(aHigh);
+        bLow = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(bLow);
+        bHigh = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(bHigh);
+        
+        low = bdd_refs_push(sylvan_or(aLow, aHigh));
+        high = bdd_refs_push(sylvan_or(bLow, bHigh));
+        
+        result = sylvan_makenode(vR1, low, high);
+        bdd_refs_pop(6);
+    } else if (level == vR1 && level%2 == 0) {
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_high(R1), R2, level));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_low(R1), R2, level));
+
+        low = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(1);
+        result = sylvan_makenode(vR1, low, high);
+    } else if (level == vR1) {
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_high(R1), R2, level));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_low(R1), R2, level));
+
+        low = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(high);
+        result = sylvan_or(low, high);
+        bdd_refs_pop(2);
+    } else if (level == vR2 && level%2 == 1 && vR1 == level+1) { 
+        BDD aLow, aHigh, bLow, bHigh;
+
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_high(R1), sylvan_high(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_low(R1), sylvan_high(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_high(R1), sylvan_low(R2), level+1));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, sylvan_low(R1), sylvan_low(R2), level+1));
+
+        aLow = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(aLow);
+        aHigh = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(aHigh);
+        bLow = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(bLow);
+        bHigh = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(bHigh);
+
+        low = sylvan_makenode(vR1, aLow, aHigh);
+        high = sylvan_makenode(vR1, bLow, bHigh);
+        bdd_refs_pop(4);
+
+        result = sylvan_makenode(vR2, low, high);
+    } else if (level == vR2 && level%2 == 1) {
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1, sylvan_high(R2), level));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, R1, sylvan_low(R2), level));
+
+        low = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_pop(1);
+        result = sylvan_makenode(vR2, low, high);
+    } else { // level == vR2 && level%2 == 0
+        BDD aLow, bLow;
+        aLow = (vR1 == level+1) ? sylvan_low(R1) : R1;
+        bLow = (vR1 == level+1) ? sylvan_high(R1) : R1;
+
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, bLow, sylvan_high(R2), level));
+        bdd_refs_spawn(SPAWN(sylvan_relcomp, aLow, sylvan_low(R2), level));
+
+        low = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(low);
+        high = bdd_refs_sync(SYNC(sylvan_relcomp));
+        bdd_refs_push(high);
+        result = sylvan_or(low, high);
+        bdd_refs_pop(2);
+    } 
+
+    if (cachenow) {
+        if (cache_put3(CACHE_BDD_RELCOMP, R1, R2, 0, result)) sylvan_stats_count(BDD_RELCOMP_CACHEDPUT);
+    }
+    
+    return result;
+}
+
+
+
 /**
  * Computes the transitive closure by traversing the BDD recursively.
  * See Y. Matsunaga, P. C. McGeer, R. K. Brayton

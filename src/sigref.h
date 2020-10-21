@@ -25,6 +25,13 @@
 #define CACHE_EQUI              (260LL<<42)
 #define CACHE_ENCODE_BLOCK      (261LL<<42)
 #define CACHE_DECODE_BLOCK      (262LL<<42)
+#define CACHE_MARKOV_QUOTIENT   (263LL<<42)
+#define CACHE_TRANS_QUOTIENT    (264LL<<42)
+#define CACHE_STATES_QUOTIENT   (265LL<<42)
+#define CACHE_PARTITION_ENUM    (266LL<<42)
+#define CACHE_CONVERSE			(267LL<<42) // RICHARD
+#define CACHE_BISIM		        (268LL<<42) // RICHARD
+#define CACHE_RENAME	        (269LL<<42) // RICHARD
 
 /* Configuration */
 extern int bisimulation; // branching
@@ -39,7 +46,7 @@ extern int ordering; // 0 = s,t < a < B, 1 = s,t < B < a, default: 0
 /* Obtain current wallclock time */
 extern double t_start;
 double wctime();
-#define INFO(s, ...) fprintf(stdout, "[% 8.2f] " s "\n", wctime()-t_start, ##__VA_ARGS__)
+#define INFO(s, ...) { fprintf(stdout, "[% 8.2f] " s "\n", wctime()-t_start, ##__VA_ARGS__); fflush(stdout); }
 
 #ifndef cas
 #define cas(ptr, old, new) (__sync_bool_compare_and_swap((ptr),(old),(new)))

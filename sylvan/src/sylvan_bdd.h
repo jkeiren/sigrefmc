@@ -111,6 +111,21 @@ TASK_DECL_4(BDD, sylvan_relnext, BDD, BDD, BDDSET, BDDVAR);
 #define sylvan_relnext(a,b,vars) CALL(sylvan_relnext,a,b,vars,0)
 
 /**
+ * Compute result(x,x') = (\forall x': T(x,x')[x := x''] ==> R(x,x'))[x'' := x']
+ * The "forall" preimage of R under T.
+ */
+TASK_DECL_3(BDD, sylvan_forall_preimage, BDD, BDD, BDDVAR);
+#define sylvan_forall_preimage(R,T) CALL(sylvan_forall_preimage,R,T,0)
+
+/**
+ * Compute \exists x'': R1(x,x')[x' := x''] \rightarrow R2(x,x')[x := x'']
+ * The relational composition of R1 and R2.
+ */
+TASK_DECL_3(BDD, sylvan_relcomp, BDD, BDD, BDDVAR);
+#define sylvan_relcomp(R1,R2) CALL(sylvan_relcomp,R1,R2,0)
+
+
+/**
  * Computes the transitive closure by traversing the BDD recursively.
  * See Y. Matsunaga, P. C. McGeer, R. K. Brayton
  *     On Computing the Transitive Closure of a State Transition Relation
