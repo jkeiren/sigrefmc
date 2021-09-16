@@ -36,7 +36,8 @@ add_library(sylvan
     tls.h
 )
 
-target_link_libraries(sylvan m pthread)
+include_directories(${GMP_INCLUDE_DIR})
+target_link_libraries(sylvan m pthread ${GMP_LIB})
 
 if(UNIX AND NOT APPLE)
     target_link_libraries(sylvan rt)
@@ -62,7 +63,7 @@ install(TARGETS
     sylvan
     DESTINATION "lib")
 
-install(FILES 
+install(FILES
     lace.h
     llmsset.h
     sylvan.h

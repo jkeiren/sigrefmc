@@ -1,6 +1,24 @@
 cmake_minimum_required(VERSION 2.6)
 project(sigref C CXX)
 
+# Check for GMP
+include(FindGMP)
+if(GMP_FOUND)
+  message(STATUS "GMP Libraries: " ${GMP_LIB} " " ${GMPXX_LIB} " with include path " ${GMP_INCLUDE_DIR} " " ${GMPXX_INCLUDE_DIR})
+  include_directories(${GMP_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "Cannot find GMP library")
+endif()
+
+# Check for TinyXML
+include(FindTinyXML)
+if(TINYXML_FOUND)
+  message(STATUS "TinyXML Libraries: " ${TINYXML_LIB} " with include path " ${TINYXML_INCLUDE_DIR})
+  include_directories(${TINYXML_INCLUDE_DIR})
+else()
+  message(FATAL_ERROR "Cannot find TinyXML library")
+endif()
+
 include_directories(.)
 
 set(SOURCES
@@ -32,21 +50,16 @@ set(SOURCES
     )
 
 add_executable(sigrefmc ${SOURCES} refine_sl.c)
-target_link_libraries(sigrefmc sylvan tinyxml gmp)
+target_link_libraries(sigrefmc sylvan ${TINYXML_LIB} ${GMP_LIB})
 
 add_executable(sigrefmc_ht ${SOURCES} refine_ht.c)
-target_link_libraries(sigrefmc_ht sylvan tinyxml gmp)
+target_link_libraries(sigrefmc_ht sylvan ${TINYXML_LIB} ${GMP_LIB})
 
 include(CheckIncludeFiles)
 check_include_files("gperftools/profiler.h" HAVE_PROFILER)
 
-find_path(HAVE_TINYXML_H tinyxml.h)
-
 find_package(Boost REQUIRED)
 
-if(NOT HAVE_TINYXML_H)
-    message(FATAL_ERROR "tinyxml not found")
-endif()
 
 if(HAVE_PROFILER)
     set_target_properties(sigrefmc PROPERTIES COMPILE_DEFINITIONS "HAVE_PROFILER")
