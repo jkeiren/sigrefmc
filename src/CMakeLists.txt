@@ -70,7 +70,16 @@ if(HAVE_PROFILER)
 endif()
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    # Check for ARGP
+    include(FindARGP)
+    if(ARGP_FOUND)
+        message(STATUS "ARGP Libraries: " ${ARGP_LIB} " with include path " ${ARGP_INCLUDE_DIR})
+        include_directories(${ARGP_INCLUDE_DIR})
+    else()
+        message(FATAL_ERROR "Cannot find ARGP library")
+    endif()
+
     # add argp library for OSX
-    target_link_libraries(sigrefmc argp)
-    target_link_libraries(sigrefmc_ht argp)
+    target_link_libraries(sigrefmc ${ARGP_LIB})
+    target_link_libraries(sigrefmc_ht ${ARGP_LIB})
 endif()
